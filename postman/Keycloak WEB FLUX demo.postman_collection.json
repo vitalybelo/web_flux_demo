@@ -1,0 +1,189 @@
+{
+	"info": {
+		"_postman_id": "c622ac1b-7e2b-44af-96d7-f72d780ed829",
+		"name": "Keycloak WEB FLUX demo",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "25432314"
+	},
+	"item": [
+		{
+			"name": "GET customer info",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "oauth2",
+					"oauth2": [
+						{
+							"key": "password",
+							"value": "vitos",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "vitos",
+							"type": "string"
+						},
+						{
+							"key": "client_authentication",
+							"value": "header",
+							"type": "string"
+						},
+						{
+							"key": "addTokenTo",
+							"value": "header",
+							"type": "string"
+						},
+						{
+							"key": "grant_type",
+							"value": "password_credentials",
+							"type": "string"
+						},
+						{
+							"key": "clientId",
+							"value": "login-web",
+							"type": "string"
+						},
+						{
+							"key": "accessTokenUrl",
+							"value": "http://localhost:8443/realms/SpringBootKeycloak/protocol/openid-connect/token",
+							"type": "string"
+						},
+						{
+							"key": "clientSecret",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "scope",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "tokenName",
+							"value": "keycloak bearer token",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "user",
+							"value": "alex",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "alex",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8080/webflux/customer/7bdd9088-29b2-4fa8-9c3d-bf539ecb825a",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"webflux",
+						"customer",
+						"7bdd9088-29b2-4fa8-9c3d-bf539ecb825a"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST customer callback",
+			"request": {
+				"auth": {
+					"type": "oauth2",
+					"oauth2": [
+						{
+							"key": "password",
+							"value": "vitos",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "vitos",
+							"type": "string"
+						},
+						{
+							"key": "client_authentication",
+							"value": "header",
+							"type": "string"
+						},
+						{
+							"key": "addTokenTo",
+							"value": "header",
+							"type": "string"
+						},
+						{
+							"key": "grant_type",
+							"value": "password_credentials",
+							"type": "string"
+						},
+						{
+							"key": "clientId",
+							"value": "login-web",
+							"type": "string"
+						},
+						{
+							"key": "accessTokenUrl",
+							"value": "http://localhost:8443/realms/SpringBootKeycloak/protocol/openid-connect/token",
+							"type": "string"
+						},
+						{
+							"key": "clientSecret",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "scope",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "tokenName",
+							"value": "keycloak bearer token",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"user_id\": \"7bdd9088-29b2-4fa8-9c3d-bf539ecb825a\",\r\n    \"user_name\": \"ivanoff\",\r\n    \"first_name\": \"Семен\",\r\n    \"family_name\": \"Горбунков\",\r\n    \"middle_name\": \"Семенович\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/webflux/customer/callback",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"webflux",
+						"customer",
+						"callback"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
