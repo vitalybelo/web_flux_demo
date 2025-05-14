@@ -4,6 +4,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import ru.vitos.local.webflux.model.CustomerInfo
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Класс хранилище данных callback для обработки запросов
@@ -14,7 +15,7 @@ import ru.vitos.local.webflux.model.CustomerInfo
 class CallbackDataService {
 
 
-    private var requestMap: MutableMap<String, CustomerInfo> = HashMap()
+    private var requestMap: MutableMap<String, CustomerInfo> = ConcurrentHashMap()
 
     companion object {
         val log: Logger = LoggerFactory.getLogger(CallbackDataService::class.java)
