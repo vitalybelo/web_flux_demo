@@ -1,14 +1,15 @@
 package ru.vitos.local.webflux.service
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.log
 import ru.vitos.local.webflux.model.CustomerInfo
 import java.lang.System.currentTimeMillis
 import javax.management.timer.Timer
+
 
 /**
  * Сервисный класс для получения информации пользователя через callback запрос от стороннего провайдера
@@ -16,12 +17,13 @@ import javax.management.timer.Timer
  */
 @Service
 class CustomerService(
+
+    @Value("\${callback.timeout:60}") private val callbackTimeout: Long,
     private val callbackDataService: CallbackDataService
 ) {
-    companion object {
-        val logger: Logger = LoggerFactory.getLogger(CustomerService::class.java)
-        const val TIMEOUT_DELAY = 60 * Timer.ONE_SECOND
-    }
+
+    private val delayTimeout = callbackTimeout * Timer.ONE_SECOND
+
 
     /**
      * Метод возвращает информацию о пользователе, которую он получает из callback запроса.
@@ -31,21 +33,33 @@ class CustomerService(
      * @param userId идентификатор пользователя
      * @return http ответ с информацией пользователя
      */
-    fun getCustomerInfo(userId: String): Mono<ResponseEntity<Any>> {
+    suspend fun getCustomerInfo(userId: String): Mono<ResponseEntity<Any>> {
 
         var userInfo: CustomerInfo?
-        logger.info(">>>> getCustomerInfo by userId: $userId")
-
         val beginTimeoutMillis = currentTimeMillis()
+        // начинаем ждать callback
         do {
-            userInfo = callbackDataService.getCustomerByRequestId(userId)
+            userInfo = callbackDataService.getUserInfoCallback(userId)
+            if (userInfo != null) break
+            // пока нет, проверяем тайм-аут
             val deadlineTimeoutMillis = currentTimeMillis() - beginTimeoutMillis
-            if  (deadlineTimeoutMillis > TIMEOUT_DELAY) {
-                return Mono.just(ResponseEntity("Timeout", HttpStatus.REQUEST_TIMEOUT))
+            if  (deadlineTimeoutMillis > delayTimeout) {
+                // поймали тайм-аут - отваливаемся
+                val timeoutMono =
+                    Mono.just(ResponseEntity<Any>("Timeout", HttpStatus.REQUEST_TIMEOUT))
+                timeoutMono.subscribe { log.info("Timeout happen of callback waiting for $userId") }
+                return timeoutMono
             }
-        } while(userInfo == null)
+            Thread.sleep(1000)
 
-        return Mono.just(ResponseEntity(userInfo, HttpStatus.OK))
+        } while(true)
+
+        val successMono =
+            Mono.just(ResponseEntity<Any>(userInfo, HttpStatus.OK))
+        successMono.subscribe { log.info("Success of callback waiting for $userId") }
+        return successMono
     }
+
+
 
 }

@@ -1,10 +1,19 @@
 package ru.vitos.local.webflux.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import kotlinx.coroutines.reactive.awaitFirstOrNull
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Sort
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.relational.core.query.Criteria.where
+import org.springframework.data.relational.core.query.Query.query
 import org.springframework.stereotype.Service
+import ru.vitos.local.webflux.constants.CallbackTypes
+import ru.vitos.local.webflux.entity.CallbackTable
 import ru.vitos.local.webflux.model.CustomerInfo
-import java.util.concurrent.ConcurrentHashMap
+import ru.vitos.local.webflux.repository.CallBackRepository
 
 /**
  * Класс хранилище данных callback для обработки запросов
@@ -12,10 +21,13 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @Service
 @Suppress("unused")
-class CallbackDataService {
+class CallbackDataService(
 
+    private val r2dbcRepository: CallBackRepository,
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
+    private val objectMapper: ObjectMapper
+) {
 
-    private var requestMap: MutableMap<String, CustomerInfo> = ConcurrentHashMap()
 
     companion object {
         val log: Logger = LoggerFactory.getLogger(CallbackDataService::class.java)
@@ -23,39 +35,82 @@ class CallbackDataService {
 
 
     /**
-     * Метод проверяет наличие в хранилище записи для конкретного идентификатора пользователя.
-     * Если запись по идентификатору существует, считывается значение по ключу и запись удаляется.
+     * Метод проверяет наличие в хранилище записи для пользователя, заданного идентификатором,
+     * с признаком USER_INFO. Если запись или несколько существуют, считывается последняя, затем
+     * удаляются все записи для заданного пользователя с признаком USER_INFO
      *
      * @param userId идентификатор пользователя
      * @return имя пользователя или null, если в хранилище нет записи для идентификатора
      */
-    fun getCustomerByRequestId(userId: String?): CustomerInfo? {
+    suspend fun getUserInfoCallback(userId: String): CustomerInfo? {
 
-        if (userId != null && requestMap.containsKey(userId)) {
-            val userInfo = requestMap[userId]
-            requestMap.remove(userId)
-            return userInfo
-        }
+            findUserInfoCallback(userId)?.let { userInfo ->
+                deleteUserInfoCallback(userId)
+                return userInfo
+            }
         return null
     }
 
+
     /**
-     * Добавляет запись в хранилище для заданного идентификатора.
+     * Удаляет для пользователя заданного идентификатором все callbacks, которые имеют признак USER_INFO
+     * @param userId идентификатор пользователя
+     */
+    suspend fun deleteUserInfoCallback(userId: String) {
+
+        r2dbcEntityTemplate
+            .delete(CallbackTable::class.java)
+            .matching(query(where("user_id").`is`(userId)
+                .and("callback_type").`is`(CallbackTypes.USER_INFO.name)))
+            .all()
+            .map { log.info("User info has been deleted for $userId with size = $it") }
+            .subscribe{}
+    }
+
+    /**
+     * Ищет в хранилище
+     * @param userId идентификатор пользователя
+     * @return найденную запись или null
+     */
+    suspend fun findUserInfoCallback(userId: String): CustomerInfo? {
+
+        r2dbcEntityTemplate
+            .select(CallbackTable::class.java)
+            .matching(query(where("user_id").`is`(userId)
+                    .and("callback_type").`is`(CallbackTypes.USER_INFO.name))
+                    .sort(Sort.by(Sort.Direction.DESC,"timestamp"))
+                    .limit(1))
+            .all()
+            .awaitFirstOrNull()?.let { record ->
+                objectMapper.readValue(record.callbackJson, CustomerInfo::class.java)?.let {
+                    return it
+                }
+            }
+        return null
+    }
+
+
+    /**
+     * Добавляет запись в хранилище для заданного идентификатора user_id - о полученной информации
+     * пользователя от стороннего сервиса callback-ом.
      *
      * @param userId идентификатор пользователя
      * @param userInfo информация о пользователе
      */
-    fun addCustomerInfoRequest(userId: String, userInfo: CustomerInfo) {
+    suspend fun addUserInfoCallback(userId: String, userInfo: CustomerInfo): CallbackTable? {
 
-        if (requestMap.containsKey(userId)) requestMap.remove(userId)
-        requestMap[userId] = userInfo
+        val userInfoJsonString = objectMapper.writeValueAsString(userInfo)
+        val record = CallbackTable(userId, CallbackTypes.USER_INFO.name, userInfoJsonString)
+        r2dbcEntityTemplate
+            .insert(CallbackTable::class.java)
+            .using(record)
+            .awaitSingleOrNull()?.let { result ->
+                log.debug("Added callback to table: {}", result)
+                return result
+            }
+        return null
     }
 
-    /**
-     * @return карту хранилища
-     */
-    fun getRequestMap(): Map<String, CustomerInfo> {
-        return requestMap
-    }
+
 
 }

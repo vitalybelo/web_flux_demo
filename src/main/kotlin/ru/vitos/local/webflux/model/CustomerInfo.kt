@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CustomerInfo(
 
-    @JsonProperty("user_id") var userId: String,
+    @JsonProperty("user_id") var userId: String? = null,
     @JsonProperty("user_name") var userName: String? = null,
     @JsonProperty("first_name") var firstName: String? = null,
     @JsonProperty("family_name") var familyName: String? = null,

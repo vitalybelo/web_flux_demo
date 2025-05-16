@@ -13,76 +13,13 @@
 			},
 			"request": {
 				"auth": {
-					"type": "oauth2",
-					"oauth2": [
-						{
-							"key": "password",
-							"value": "vitos",
-							"type": "string"
-						},
-						{
-							"key": "username",
-							"value": "vitos",
-							"type": "string"
-						},
-						{
-							"key": "client_authentication",
-							"value": "header",
-							"type": "string"
-						},
-						{
-							"key": "addTokenTo",
-							"value": "header",
-							"type": "string"
-						},
-						{
-							"key": "grant_type",
-							"value": "password_credentials",
-							"type": "string"
-						},
-						{
-							"key": "clientId",
-							"value": "login-web",
-							"type": "string"
-						},
-						{
-							"key": "accessTokenUrl",
-							"value": "http://localhost:8443/realms/SpringBootKeycloak/protocol/openid-connect/token",
-							"type": "string"
-						},
-						{
-							"key": "clientSecret",
-							"value": "",
-							"type": "string"
-						},
-						{
-							"key": "scope",
-							"value": "",
-							"type": "string"
-						},
-						{
-							"key": "tokenName",
-							"value": "keycloak bearer token",
-							"type": "string"
-						}
-					]
+					"type": "noauth"
 				},
 				"method": "GET",
 				"header": [],
 				"body": {
 					"mode": "urlencoded",
-					"urlencoded": [
-						{
-							"key": "user",
-							"value": "alex",
-							"type": "text"
-						},
-						{
-							"key": "password",
-							"value": "alex",
-							"type": "text"
-						}
-					]
+					"urlencoded": []
 				},
 				"url": {
 					"raw": "http://localhost:8080/webflux/customer/7bdd9088-29b2-4fa8-9c3d-bf539ecb825a",
@@ -104,59 +41,7 @@
 			"name": "POST customer callback",
 			"request": {
 				"auth": {
-					"type": "oauth2",
-					"oauth2": [
-						{
-							"key": "password",
-							"value": "vitos",
-							"type": "string"
-						},
-						{
-							"key": "username",
-							"value": "vitos",
-							"type": "string"
-						},
-						{
-							"key": "client_authentication",
-							"value": "header",
-							"type": "string"
-						},
-						{
-							"key": "addTokenTo",
-							"value": "header",
-							"type": "string"
-						},
-						{
-							"key": "grant_type",
-							"value": "password_credentials",
-							"type": "string"
-						},
-						{
-							"key": "clientId",
-							"value": "login-web",
-							"type": "string"
-						},
-						{
-							"key": "accessTokenUrl",
-							"value": "http://localhost:8443/realms/SpringBootKeycloak/protocol/openid-connect/token",
-							"type": "string"
-						},
-						{
-							"key": "clientSecret",
-							"value": "",
-							"type": "string"
-						},
-						{
-							"key": "scope",
-							"value": "",
-							"type": "string"
-						},
-						{
-							"key": "tokenName",
-							"value": "keycloak bearer token",
-							"type": "string"
-						}
-					]
+					"type": "noauth"
 				},
 				"method": "POST",
 				"header": [],
