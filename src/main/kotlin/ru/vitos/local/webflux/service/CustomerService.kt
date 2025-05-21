@@ -37,9 +37,12 @@ class CustomerService(
 
         var userInfo: CustomerInfo?
         val beginTimeoutMillis = currentTimeMillis()
-        // начинаем ждать callback
+        // здесь мы как-бы отправили запрос в коробку для получения callback и получили id
+        val correlationId = userId
+        log.info("Starting getCustomerInfo for $userId :: with timeout $delayTimeout")
+        // начинаем ждать callback`
         do {
-            userInfo = callbackDataService.getUserInfoCallback(userId)
+            userInfo = callbackDataService.getUserInfoCallback(correlationId)
             if (userInfo != null) break
             // пока нет, проверяем тайм-аут
             val deadlineTimeoutMillis = currentTimeMillis() - beginTimeoutMillis
@@ -47,7 +50,7 @@ class CustomerService(
                 // поймали тайм-аут - отваливаемся
                 val timeoutMono =
                     Mono.just(ResponseEntity<Any>("Timeout", HttpStatus.REQUEST_TIMEOUT))
-                timeoutMono.subscribe { log.info("Timeout happen of callback waiting for $userId") }
+                timeoutMono.subscribe { log.info("Timeout happen of callback correlationId = $correlationId") }
                 return timeoutMono
             }
             Thread.sleep(1000)

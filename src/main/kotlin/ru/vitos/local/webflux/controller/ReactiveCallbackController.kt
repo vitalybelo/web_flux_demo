@@ -7,16 +7,18 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
+import ru.vitos.local.webflux.constants.CallbackTypes
+import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.INTERNAL_SERVER_ERROR
 import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.INVALID_PARAMETERS
 import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.log
 import ru.vitos.local.webflux.model.CustomerInfo
-import ru.vitos.local.webflux.service.CallbackDataService
+import ru.vitos.local.webflux.service.ReactiveCallbackStore
 
 @RestController
-@RequestMapping("/webflux")
-class CallbackRestController(
+@RequestMapping("/webflux/mono")
+class ReactiveCallbackController(
 
-    private val callbackDataService: CallbackDataService
+    private val reactiveStore: ReactiveCallbackStore
 ) {
 
 
@@ -32,29 +34,36 @@ class CallbackRestController(
         @RequestBody(required = false) userInfo: CustomerInfo?): Mono<ResponseEntity<Any>> {
 
         userInfo?.userId?.let { userId ->
-            callbackDataService.addUserInfoCallback(userId, userInfo)?.let { record ->
-
-                val successMono=
-                    Mono.just(ResponseEntity<Any>(record, HttpStatus.OK))
-                successMono.subscribe { log.info("Added info for user id = ${record.correlationId}") }
-                return successMono
-            }
+            reactiveStore
+                .insertCallbackData(userId, CallbackTypes.USER_INFO.name, userInfo)?.let {
+                    val mono =
+                        Mono.just(ResponseEntity<Any>(it, HttpStatus.OK))
+                    mono.subscribe()
+                    return mono
+                }
+            return internalServerError()
         }
+        return invalidParameters()
+    }
+
+
+
+
+    suspend fun invalidParameters(): Mono<ResponseEntity<Any>> {
+
         val errorMono =
             Mono.just(ResponseEntity<Any>(INVALID_PARAMETERS, HttpStatus.BAD_REQUEST))
         errorMono.subscribe { log.info(INVALID_PARAMETERS) }
         return errorMono
     }
 
+    suspend fun internalServerError(): Mono<ResponseEntity<Any>> {
 
-
-
-
-
-
-
-
-
+        val errorMono =
+            Mono.just(ResponseEntity<Any>(INVALID_PARAMETERS, HttpStatus.BAD_REQUEST))
+        errorMono.subscribe { log.info(INTERNAL_SERVER_ERROR) }
+        return errorMono
+    }
 
 
 

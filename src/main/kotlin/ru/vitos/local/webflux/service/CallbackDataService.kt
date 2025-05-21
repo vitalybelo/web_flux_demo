@@ -3,17 +3,15 @@ package ru.vitos.local.webflux.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Sort
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.stereotype.Service
 import ru.vitos.local.webflux.constants.CallbackTypes
+import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.log
 import ru.vitos.local.webflux.entity.CallbackTable
 import ru.vitos.local.webflux.model.CustomerInfo
-import ru.vitos.local.webflux.repository.CallBackRepository
 
 /**
  * Класс хранилище данных callback для обработки запросов
@@ -23,15 +21,10 @@ import ru.vitos.local.webflux.repository.CallBackRepository
 @Suppress("unused")
 class CallbackDataService(
 
-    private val r2dbcRepository: CallBackRepository,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate,
     private val objectMapper: ObjectMapper
 ) {
 
-
-    companion object {
-        val log: Logger = LoggerFactory.getLogger(CallbackDataService::class.java)
-    }
 
 
     /**
@@ -39,13 +32,13 @@ class CallbackDataService(
      * с признаком USER_INFO. Если запись или несколько существуют, считывается последняя, затем
      * удаляются все записи для заданного пользователя с признаком USER_INFO
      *
-     * @param userId идентификатор пользователя
+     * @param correlationId идентификатор запроса
      * @return имя пользователя или null, если в хранилище нет записи для идентификатора
      */
-    suspend fun getUserInfoCallback(userId: String): CustomerInfo? {
+    suspend fun getUserInfoCallback(correlationId: String): CustomerInfo? {
 
-            findUserInfoCallback(userId)?.let { userInfo ->
-                deleteUserInfoCallback(userId)
+            findUserInfoCallback(correlationId)?.let { userInfo ->
+                deleteUserInfoCallback(correlationId)
                 return userInfo
             }
         return null
@@ -54,29 +47,29 @@ class CallbackDataService(
 
     /**
      * Удаляет для пользователя заданного идентификатором все callbacks, которые имеют признак USER_INFO
-     * @param userId идентификатор пользователя
+     * @param correlationId идентификатор запроса
      */
-    suspend fun deleteUserInfoCallback(userId: String) {
+    suspend fun deleteUserInfoCallback(correlationId: String) {
 
         r2dbcEntityTemplate
             .delete(CallbackTable::class.java)
-            .matching(query(where("user_id").`is`(userId)
+            .matching(query(where("correlation_id").`is`(correlationId)
                 .and("callback_type").`is`(CallbackTypes.USER_INFO.name)))
             .all()
-            .map { log.info("User info has been deleted for $userId with size = $it") }
+            .map { log.info("User info has been deleted for $correlationId with size = $it") }
             .subscribe{}
     }
 
     /**
-     * Ищет в хранилище
-     * @param userId идентификатор пользователя
+     * Ищет в хранилище запись - которая делается в таблице при получении callback
+     * @param correlationId идентификатор запроса
      * @return найденную запись или null
      */
-    suspend fun findUserInfoCallback(userId: String): CustomerInfo? {
+    suspend fun findUserInfoCallback(correlationId: String): CustomerInfo? {
 
         r2dbcEntityTemplate
             .select(CallbackTable::class.java)
-            .matching(query(where("user_id").`is`(userId)
+            .matching(query(where("correlation_id").`is`(correlationId)
                     .and("callback_type").`is`(CallbackTypes.USER_INFO.name))
                     .sort(Sort.by(Sort.Direction.DESC,"timestamp"))
                     .limit(1))
@@ -94,13 +87,13 @@ class CallbackDataService(
      * Добавляет запись в хранилище для заданного идентификатора user_id - о полученной информации
      * пользователя от стороннего сервиса callback-ом.
      *
-     * @param userId идентификатор пользователя
+     * @param correlationId идентификатор запроса
      * @param userInfo информация о пользователе
      */
-    suspend fun addUserInfoCallback(userId: String, userInfo: CustomerInfo): CallbackTable? {
+    suspend fun addUserInfoCallback(correlationId: String, userInfo: CustomerInfo): CallbackTable? {
 
         val userInfoJsonString = objectMapper.writeValueAsString(userInfo)
-        val record = CallbackTable(userId, CallbackTypes.USER_INFO.name, userInfoJsonString)
+        val record = CallbackTable(correlationId, CallbackTypes.USER_INFO.name, userInfoJsonString)
         r2dbcEntityTemplate
             .insert(CallbackTable::class.java)
             .using(record)

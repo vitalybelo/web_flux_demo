@@ -8,6 +8,7 @@ class ObjectCompanion {
     companion object {
         val log: Logger = LoggerFactory.getLogger(ObjectCompanion::class.java)
         const val INVALID_PARAMETERS = "Invalid parameters"
+        const val INTERNAL_SERVER_ERROR = "Internal server error. Please check logs for more information."
     }
 
 }

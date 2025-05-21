@@ -12,17 +12,27 @@ import java.util.UUID
 data class CallbackTable(
 
     @Column("id") @Id val id: UUID,
-    @Column("user_id") val userId: String,
+    @Column("correlation_id") val correlationId: String,
     @Column("callback_type") val callbackType: String? = null,
-    @Column("callback_json") val callbackJson: String? = null,
+    @Column("callback_json") var callbackJson: String? = null,
     @Column("timestamp") val timestamp: Long? = null,
 
-) {
+    ) {
     constructor() :
-            this(UUID.randomUUID(), "", "", "", currentTimeMillis())
+            this(
+                UUID.randomUUID(),
+                "",
+                "",
+                "",
+                currentTimeMillis())
 
-    constructor(userId: String,
-                callbackType: String,
-                callbackJson: String) :
-            this(UUID.randomUUID(), userId, callbackType, callbackJson, currentTimeMillis())
+    constructor(id: String,
+                type: String,
+                json: String) :
+            this(
+                UUID.randomUUID(),
+                id,
+                type,
+                json,
+                currentTimeMillis())
 }
