@@ -15,10 +15,9 @@ import java.util.concurrent.TimeoutException
 class BlackBoxExternalService(
 
     @Value("\${callback.timeout:60}") private val callbackTimeout: Long,
-    private val reactiveCallbackStore: ReactiveCallbackStore,
+    private val reactiveCallbackStore: ReactiveCallbackStore
 ) {
 
-    private val executor = Executors.newSingleThreadScheduledExecutor()
     private val delayTimeout = Duration.ofSeconds(callbackTimeout).toMillis()
 
 
@@ -32,6 +31,7 @@ class BlackBoxExternalService(
      */
     fun fetchUserInfoData(userId: String, callback: (Result<Any>) -> Unit) {
 
+        val executor = Executors.newSingleThreadScheduledExecutor()
         val correlationId = requestUserInfoData(userId)
 
         // здесь мы начинаем ждать callback
@@ -40,19 +40,18 @@ class BlackBoxExternalService(
             try {
                 // проверяем поступление callback и если поступил - читаем его
                 reactiveCallbackStore.get(correlationId).publishOn(Schedulers.boundedElastic()).map { isReceived ->
-                if (isReceived) {
-                    val monoRecord = reactiveCallbackStore.selectCallbackData(correlationId)
-                    monoRecord.subscribe()
-                    monoRecord.publishOn(Schedulers.boundedElastic()).map { data ->
-                        if (data != null) {
-                            executor.shutdown()
-                            val x = reactiveCallbackStore.removeAwaiting(correlationId)
-                            x.subscribe()
-                            //reactiveCallbackStore.deleteUserInfoCallback(correlationId)
-                            callback(Result.success(data))
-                        }
-                    }.subscribe()
-                }
+
+                    if (isReceived) {
+                        val monoRecord = reactiveCallbackStore.selectCallbackData(correlationId)
+                        monoRecord.subscribe()
+                        monoRecord.publishOn(Schedulers.boundedElastic()).map { data ->
+                            if (data != null) {
+                                executor.shutdown()
+                                reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
+                                callback(Result.success(data))
+                            }
+                        }.subscribe()
+                    }
                 }.subscribe()
 
                 // проверяем не истекло ли время ожидания
@@ -70,8 +69,8 @@ class BlackBoxExternalService(
                 callback(Result.failure(e))
             }
         }, 0L, 2L, TimeUnit.SECONDS)
-
     }
+
 
     /**
      * Сервис имитирует отправку запроса в сервис "коробка" на USER_INFO и сохраняет correlationId

@@ -40,11 +40,11 @@ class CustomerService(
         // здесь мы как-бы отправили запрос в коробку для получения callback и получили id
         val correlationId = userId
         log.info("Starting getCustomerInfo for $userId :: with timeout $delayTimeout")
-        // начинаем ждать callback`
+        // начинаем ждать callback
         do {
             userInfo = callbackDataService.getUserInfoCallback(correlationId)
             if (userInfo != null) break
-            // пока нет, проверяем тайм-аут
+            // пока callback не поступил, проверяем тайм-аут
             val deadlineTimeoutMillis = currentTimeMillis() - beginTimeoutMillis
             if  (deadlineTimeoutMillis > delayTimeout) {
                 // поймали тайм-аут - отваливаемся

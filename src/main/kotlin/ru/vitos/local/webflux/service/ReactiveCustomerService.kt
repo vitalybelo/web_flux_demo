@@ -35,9 +35,7 @@ class ReactiveCustomerService(
                             sink.success(data)
                         }
                     }
-                    .onFailure { error ->
-                        sink.error(error)
-                    }
+                    .onFailure { error -> sink.error(error) }
             }
         }
     }

@@ -118,7 +118,7 @@ class ReactiveCallbackStore(
             .map { count ->
                 log.info("Callback data deleted for $correlationId with size = $count")
             }
-            .subscribe{}
+            .subscribe()
     }
 
 
@@ -137,21 +137,23 @@ class ReactiveCallbackStore(
         callbackData: Any
     ) : CallbackTable? {
 
-        val jsonString = objectMapper.writeValueAsString(callbackData)
-        val record = CallbackTable(correlationId, callbackType, jsonString)
-        try {
-            return r2dbcTemplate
-                .insert(CallbackTable::class.java)
-                .using(record)
-                .doOnSuccess { record ->
-                    log.info("Successfully inserted callback data for $correlationId :: $callbackType")
-                    callbackDataAwaitingMap[correlationId] = true
-                }
-                .doOnError { error -> log.error("Failed to insert callback data for $correlationId :: ${error.message}") }
-                .awaitSingle()
+        if (callbackDataAwaitingMap.containsKey(correlationId)) {
+            val jsonString = objectMapper.writeValueAsString(callbackData)
+            val record = CallbackTable(correlationId, callbackType, jsonString)
+            try {
+                return r2dbcTemplate
+                    .insert(CallbackTable::class.java)
+                    .using(record)
+                    .doOnSuccess { record ->
+                        log.info("Successfully inserted callback data for $correlationId :: $callbackType")
+                        callbackDataAwaitingMap[correlationId] = true
+                    }
+                    .doOnError { error -> log.error("Failed to insert callback data for $correlationId :: ${error.message}") }
+                    .awaitSingle()
 
-        } catch (e: Exception) {
-            log.error(">>>> Exception happen during inserting :: ${e.message}")
+            } catch (e: Exception) {
+                log.error(">>>> Exception happen during inserting :: ${e.message}")
+            }
         }
         return null
     }
@@ -172,34 +174,6 @@ class ReactiveCallbackStore(
         log.info("Removed awaiting $id :: $callbackDataAwaitingMap")
         return Mono.empty()
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 }
