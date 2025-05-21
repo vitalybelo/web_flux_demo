@@ -9,6 +9,7 @@ import org.springframework.data.relational.core.query.Query.query
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import ru.vitos.local.webflux.entity.CallbackTable
 import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.log
 import java.util.concurrent.ConcurrentHashMap
@@ -169,9 +170,19 @@ class ReactiveCallbackStore(
     }
 
     fun removeAwaiting(id: String): Mono<Void> {
-        callbackDataAwaitingMap.remove(id)
-        deleteUserInfoCallback(id)
-        log.info("Removed awaiting $id :: $callbackDataAwaitingMap")
+
+        if (callbackDataAwaitingMap.containsKey(id)) {
+            try {
+                callbackDataAwaitingMap.remove(id)
+                Mono.fromCallable { deleteUserInfoCallback(id) }
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe()
+
+                log.info("Removed awaiting $id :: $callbackDataAwaitingMap")
+            } catch (e: Exception) {
+                log.error(">>> Exception happen during removing awaiting :: ${e.message}")
+            }
+        }
         return Mono.empty()
     }
 

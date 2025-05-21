@@ -59,6 +59,7 @@ class BlackBoxExternalService(
                 if  (timeSpend > delayTimeout) {
                     // поймали тайм-аут - отваливаемся
                     executor.shutdown()
+                    reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
                     log.debug("Timeout was happen for correlationId = $correlationId >> $callbackTimeout seconds")
                     callback(Result.failure(TimeoutException()))
                 }
@@ -66,6 +67,7 @@ class BlackBoxExternalService(
 
             } catch (e: Exception) {
                 executor.shutdown()
+                reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
                 callback(Result.failure(e))
             }
         }, 0L, 2L, TimeUnit.SECONDS)
@@ -84,7 +86,7 @@ class BlackBoxExternalService(
         // для упрощения - мы присвоим значение user_id идентификаторы обратного запроса, по которому далее
         // будет искать callback от сервиса "коробка" для USER_INFO
         val correlationId = userId
-        log.info("Received Callback correlation id = $correlationId for awaiting callback")
+        log.info("Received BlackBox correlation id = $correlationId for awaiting callback")
 
         // сохраняем correlationId для ожидания обратного вызова от коробки
         reactiveCallbackStore.addAwaiting(correlationId).subscribe()
