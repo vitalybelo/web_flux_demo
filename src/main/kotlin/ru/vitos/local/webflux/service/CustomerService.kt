@@ -1,5 +1,6 @@
 package ru.vitos.local.webflux.service
 
+import kotlinx.coroutines.delay
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -18,7 +19,7 @@ import javax.management.timer.Timer
 @Service
 class CustomerService(
 
-    @Value("\${callback.timeout:60}") private val callbackTimeout: Long,
+    @Value("\${callback.total.timeout:60}") private val callbackTimeout: Long,
     private val callbackDataService: CallbackDataService
 ) {
 
@@ -53,7 +54,7 @@ class CustomerService(
                 timeoutMono.subscribe { log.info("Timeout happen of callback correlationId = $correlationId") }
                 return timeoutMono
             }
-            Thread.sleep(1000)
+            delay(1000)
 
         } while(true)
 

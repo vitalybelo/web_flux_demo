@@ -5,20 +5,21 @@ import org.springframework.stereotype.Service
 import reactor.core.scheduler.Schedulers
 import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.log
 import java.lang.System.currentTimeMillis
-import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import javax.management.timer.Timer
 
 
 @Service
 class BlackBoxExternalService(
 
-    @Value("\${callback.timeout:60}") private val callbackTimeout: Long,
+    @Value("\${callback.total.timeout:30}")
+    private val callbackTimeout: Long,
+    @Value("\${callback.memory.delay:2}")
+    private val memoryDelay: Long,
     private val reactiveCallbackStore: ReactiveCallbackStore
 ) {
-
-    private val delayTimeout = Duration.ofSeconds(callbackTimeout).toMillis()
 
 
     /**
@@ -31,13 +32,25 @@ class BlackBoxExternalService(
      */
     fun fetchUserInfoData(userId: String, callback: (Result<Any>) -> Unit) {
 
+        log.info("Start fetching user info data for :: $userId")
+
         val executor = Executors.newSingleThreadScheduledExecutor()
         val correlationId = requestUserInfoData(userId)
 
         // здесь мы начинаем ждать callback
-        val beginAwaiting = currentTimeMillis()
+        val begin = currentTimeMillis()
+        val timeout = currentTimeMillis().plus(callbackTimeout * Timer.ONE_SECOND)
         executor.scheduleAtFixedRate({
             try {
+                // проверяем не наступил ли таймаут
+                if (timeout < currentTimeMillis()) {
+                    // поймали тайм-аут - отваливаемся
+                    executor.shutdown()
+                    reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
+                    log.debug("Timeout was happen for correlationId = $correlationId >> $callbackTimeout seconds")
+                    callback(Result.failure(TimeoutException()))
+                }
+
                 // проверяем поступление callback и если поступил - читаем его
                 reactiveCallbackStore.get(correlationId).publishOn(Schedulers.boundedElastic()).map { isReceived ->
 
@@ -47,6 +60,7 @@ class BlackBoxExternalService(
                         monoRecord.publishOn(Schedulers.boundedElastic()).map { data ->
                             if (data != null) {
                                 executor.shutdown()
+                                log.info("Callback received for user info data :: $userId")
                                 reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
                                 callback(Result.success(data))
                             }
@@ -54,23 +68,16 @@ class BlackBoxExternalService(
                     }
                 }.subscribe()
 
-                // проверяем не истекло ли время ожидания
-                val timeSpend = currentTimeMillis() - beginAwaiting
-                if  (timeSpend > delayTimeout) {
-                    // поймали тайм-аут - отваливаемся
-                    executor.shutdown()
-                    reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
-                    log.debug("Timeout was happen for correlationId = $correlationId >> $callbackTimeout seconds")
-                    callback(Result.failure(TimeoutException()))
-                }
-                log.debug("Awaiting scheduler for correlationId = $correlationId is running ${timeSpend/1000} sec")
-
             } catch (e: Exception) {
                 executor.shutdown()
                 reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
                 callback(Result.failure(e))
             }
-        }, 0L, 2L, TimeUnit.SECONDS)
+            if (log.isDebugEnabled) {
+                val spendTime =  (currentTimeMillis() - begin) / Timer.ONE_SECOND
+                log.debug("Awaiting scheduler for correlationId = $correlationId is running $spendTime sec")
+            }
+        }, 0L, memoryDelay, TimeUnit.SECONDS)
     }
 
 

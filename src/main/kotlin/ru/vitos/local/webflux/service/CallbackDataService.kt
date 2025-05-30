@@ -26,7 +26,6 @@ class CallbackDataService(
 ) {
 
 
-
     /**
      * Метод проверяет наличие в хранилище записи для пользователя, заданного идентификатором,
      * с признаком USER_INFO. Если запись или несколько существуют, считывается последняя, затем
@@ -57,8 +56,9 @@ class CallbackDataService(
                 .and("callback_type").`is`(CallbackTypes.USER_INFO.name)))
             .all()
             .map { log.info("User info has been deleted for $correlationId with size = $it") }
-            .subscribe{}
+            .subscribe {}
     }
+
 
     /**
      * Ищет в хранилище запись - которая делается в таблице при получении callback
@@ -103,7 +103,5 @@ class CallbackDataService(
             }
         return null
     }
-
-
 
 }
