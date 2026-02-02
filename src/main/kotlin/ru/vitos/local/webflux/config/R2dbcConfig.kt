@@ -17,11 +17,20 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 @EnableR2dbcRepositories
 class R2dbcConfig(
 
-    @Value("\${r2dbc.host}") private val host: String,
-    @Value("\${r2dbc.port}") private val port: Int,
-    @Value("\${r2dbc.dbase}") private val dbase: String,
-    @Value("\${r2dbc.username}") private val username: String,
-    @Value("\${r2dbc.password}") private val password: String
+    @param:Value("\${r2dbc.host}")
+    private val host: String,
+
+    @param:Value("\${r2dbc.port}")
+    private val port: Int,
+
+    @param:Value("\${r2dbc.dbase}")
+    private val dbase: String,
+
+    @param:Value("\${r2dbc.username}")
+    private val username: String,
+
+    @param:Value("\${r2dbc.password}")
+    private val password: String
 
 ) {
 
