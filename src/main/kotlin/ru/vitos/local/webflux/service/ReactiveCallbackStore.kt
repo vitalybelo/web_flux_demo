@@ -38,15 +38,17 @@ class ReactiveCallbackStore(
      * было проверено scheduler из пост-конструктора
      *
      */
-    fun selectCallbackData(correlationId: String): Mono<CallbackTable?> {
+    fun selectCallbackData(correlationId: String): Mono<CallbackTable> {
 
         val record = r2dbcTemplate.select<CallbackTable>()
             .matching(query(where("correlation_id").`is`(correlationId))
                 .sort(Sort.by(Sort.Direction.DESC,"timestamp"))
                 .limit(1))
             .first()
-        logger.debugM("Received callback data for correlation id = [$correlationId], record = [$record]")
-        return record
+
+        return record.doOnNext { record ->
+            logger.debugM("Received callback data for correlation id = [$correlationId], record = [$record]")
+        }
     }
 
 

@@ -12,7 +12,7 @@ import ru.vitos.local.webflux.logging.Log
 import ru.vitos.local.webflux.service.CustomerService
 
 @RestController
-@RequestMapping("/webflux")
+@RequestMapping("/customer")
 class CustomerRestController(
 
     private val customerService: CustomerService
@@ -27,7 +27,7 @@ class CustomerRestController(
      * @param userId идентификатор пользователя
      * @return информацию о пользователе CustomerInfo
      */
-    @RequestMapping(value = ["/customer/{user_id}"], method = [RequestMethod.GET] )
+    @RequestMapping(value = ["/{user_id}"], method = [RequestMethod.GET] )
     suspend fun getCustomerInfo(
 
         @PathVariable("user_id", required = true) userId: String?

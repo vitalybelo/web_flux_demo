@@ -15,12 +15,23 @@ class WebSecurityConfig {
 
         http.csrf { it.disable() }
             .cors { it.disable() }
+            .authorizeExchange { exchangeSpec ->
 
-        http.authorizeExchange { exchangeSpec ->
-            exchangeSpec.pathMatchers("/**").permitAll()
-        }
+                exchangeSpec.pathMatchers("/admin/**").hasRole("ADMIN")
+
+                exchangeSpec.pathMatchers("/private/**").authenticated()
+
+                exchangeSpec.pathMatchers(
+                    "/index",
+                    "/customer/**",
+                    "/mono/customer/**",
+                    "/actuator/health"
+                ).permitAll()
+            }
+            .oauth2ResourceServer { oauth2 ->
+                oauth2.jwt { } // Включает стандартную валидацию JWT !!! САМОЕ ВАЖНОЕ ДЛЯ KEYCLOAK !!!
+            }
 
         return http.build()
     }
-
 }

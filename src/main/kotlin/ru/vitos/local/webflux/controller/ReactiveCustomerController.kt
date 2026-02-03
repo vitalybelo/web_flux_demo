@@ -11,7 +11,7 @@ import ru.vitos.local.webflux.constants.Constants.Companion.INVALID_PARAMETERS
 import ru.vitos.local.webflux.service.ReactiveCustomerService
 
 @RestController
-@RequestMapping("/webflux/mono")
+@RequestMapping("/mono/customer")
 class ReactiveCustomerController(
 
     private val reactiveService: ReactiveCustomerService
@@ -25,7 +25,7 @@ class ReactiveCustomerController(
      * @param userId идентификатор пользователя
      * @return информацию о пользователе CustomerInfo
      */
-    @GetMapping("/customer/{user_id}")
+    @GetMapping("/{user_id}")
     fun getUserInfo(@PathVariable("user_id") userId: String?): Mono<ResponseEntity<Any>> {
 
         userId?.let { userId ->

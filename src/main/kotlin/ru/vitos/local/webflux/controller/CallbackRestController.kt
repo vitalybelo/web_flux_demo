@@ -13,7 +13,7 @@ import ru.vitos.local.webflux.model.CustomerInfo
 import ru.vitos.local.webflux.service.CallbackDataService
 
 @RestController
-@RequestMapping("/webflux")
+@RequestMapping("/customer")
 class CallbackRestController(
 
     private val callbackDataService: CallbackDataService
@@ -28,7 +28,7 @@ class CallbackRestController(
      * @param userInfo информация пользователя
      * @return статус и полученную информацию
      */
-    @PostMapping("/customer/callback")
+    @PostMapping("/callback")
     suspend fun callbackUserInfo(
 
         @RequestBody(required = false) userInfo: CustomerInfo?

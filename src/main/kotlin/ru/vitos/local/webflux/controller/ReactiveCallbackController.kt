@@ -16,7 +16,7 @@ import ru.vitos.local.webflux.model.CustomerInfo
 import ru.vitos.local.webflux.service.ReactiveCallbackStore
 
 @RestController
-@RequestMapping("/webflux/mono")
+@RequestMapping("/mono/customer")
 class ReactiveCallbackController(
 
     private val reactiveStore: ReactiveCallbackStore
@@ -31,7 +31,7 @@ class ReactiveCallbackController(
      * @param userInfo информация пользователя
      * @return статус и полученную информацию
      */
-    @PostMapping("/customer/callback")
+    @PostMapping("/callback")
     suspend fun callbackUserInfo(
         @RequestBody(required = false) userInfo: CustomerInfo?): Mono<ResponseEntity<Any>> {
 
