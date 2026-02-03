@@ -11,13 +11,23 @@ import java.util.UUID
 @Table(name = "callback_table", schema = "public")
 data class CallbackTable(
 
-    @Column("id") @Id val id: UUID,
-    @Column("correlation_id") val correlationId: String,
-    @Column("callback_type") val callbackType: String? = null,
-    @Column("callback_json") var callbackJson: String? = null,
-    @Column("timestamp") val timestamp: Long? = null,
+    @Id
+    @Column("id")
+    val id: UUID,
 
-    ) {
+    @Column("correlation_id")
+    val correlationId: String,
+
+    @Column("callback_type")
+    val callbackType: String? = null,
+
+    @Column("callback_json")
+    var callbackJson: String? = null,
+
+    @Column("timestamp")
+    val timestamp: Long? = null
+
+) {
     constructor() :
             this(
                 UUID.randomUUID(),

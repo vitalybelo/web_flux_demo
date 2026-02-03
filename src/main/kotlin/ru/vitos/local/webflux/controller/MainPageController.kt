@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono
 @RequestMapping("/webflux")
 class MainPageController {
 
-    @GetMapping("/")
+    @GetMapping("")
     fun index(): Mono<String> {
 
         return Mono.just("<div><br><h1>Hello, World !</h1></div>")

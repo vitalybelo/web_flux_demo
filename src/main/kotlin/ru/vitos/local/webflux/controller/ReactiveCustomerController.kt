@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.INVALID_PARAMETERS
+import ru.vitos.local.webflux.constants.Constants.Companion.INVALID_PARAMETERS
 import ru.vitos.local.webflux.service.ReactiveCustomerService
 
 @RestController

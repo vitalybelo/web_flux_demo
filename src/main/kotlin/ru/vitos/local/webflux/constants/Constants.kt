@@ -1,12 +1,11 @@
 package ru.vitos.local.webflux.constants
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import ru.vitos.local.webflux.logging.Log
 
-class ObjectCompanion {
+class Constants {
 
-    companion object {
-        val log: Logger = LoggerFactory.getLogger(ObjectCompanion::class.java)
+    companion object: Log() {
+
         const val INVALID_PARAMETERS = "Invalid parameters"
         const val INTERNAL_SERVER_ERROR = "Internal server error. Please check logs for more information."
         const val CORRELATION_ABSENT = "Correlation ID absent in awaiting, insert denied"

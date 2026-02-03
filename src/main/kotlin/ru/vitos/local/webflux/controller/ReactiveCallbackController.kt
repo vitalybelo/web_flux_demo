@@ -8,10 +8,10 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import ru.vitos.local.webflux.constants.CallbackTypes
-import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.CORRELATION_ABSENT
-import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.INTERNAL_SERVER_ERROR
-import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.INVALID_PARAMETERS
-import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.log
+import ru.vitos.local.webflux.constants.Constants.Companion.CORRELATION_ABSENT
+import ru.vitos.local.webflux.constants.Constants.Companion.INTERNAL_SERVER_ERROR
+import ru.vitos.local.webflux.constants.Constants.Companion.INVALID_PARAMETERS
+import ru.vitos.local.webflux.logging.Log
 import ru.vitos.local.webflux.model.CustomerInfo
 import ru.vitos.local.webflux.service.ReactiveCallbackStore
 
@@ -22,6 +22,7 @@ class ReactiveCallbackController(
     private val reactiveStore: ReactiveCallbackStore
 ) {
 
+    companion object: Log()
 
     /**
      * Принимает callback - с которым передается информация пользователя, (как-бы) запрошенная
@@ -45,8 +46,8 @@ class ReactiveCallbackController(
                         return mono
                     }
                 return errorResponseMono(CORRELATION_ABSENT, HttpStatus.NOT_FOUND)
-            } catch (e: Exception) {
-                log.error("Error during inserting callback {}", e.message)
+            } catch (ex: Exception) {
+                logger.errorM("Error during inserting callback, message = ${ex.message}, cause = ${ex.cause}")
             }
             return errorResponseMono(INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR)
         }
@@ -54,12 +55,15 @@ class ReactiveCallbackController(
     }
 
 
-    suspend fun errorResponseMono(errorText: String,
-                                  errorHttpStatus: HttpStatus): Mono<ResponseEntity<Any>> {
+    suspend fun errorResponseMono(
+        errorText: String,
+        errorHttpStatus: HttpStatus
+
+    ): Mono<ResponseEntity<Any>> {
 
         val errorMono =
             Mono.just(ResponseEntity<Any>(errorText, errorHttpStatus))
-        errorMono.subscribe { log.info(errorText) }
+        errorMono.subscribe { logger.errorM(errorText) }
         return errorMono
     }
 

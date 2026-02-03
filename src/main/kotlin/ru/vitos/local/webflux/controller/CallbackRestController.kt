@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.INVALID_PARAMETERS
-import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.log
+import ru.vitos.local.webflux.constants.Constants.Companion.INVALID_PARAMETERS
+import ru.vitos.local.webflux.logging.Log
 import ru.vitos.local.webflux.model.CustomerInfo
 import ru.vitos.local.webflux.service.CallbackDataService
 
@@ -19,6 +19,7 @@ class CallbackRestController(
     private val callbackDataService: CallbackDataService
 ) {
 
+    companion object: Log()
 
     /**
      * Принимает callback - с которым передается информация пользователя, (как-бы) запрошенная
@@ -29,20 +30,26 @@ class CallbackRestController(
      */
     @PostMapping("/customer/callback")
     suspend fun callbackUserInfo(
-        @RequestBody(required = false) userInfo: CustomerInfo?): Mono<ResponseEntity<Any>> {
+
+        @RequestBody(required = false) userInfo: CustomerInfo?
+    ): Mono<ResponseEntity<Any>> {
 
         userInfo?.userId?.let { userId ->
             callbackDataService.addUserInfoCallback(userId, userInfo)?.let { record ->
 
                 val successMono=
                     Mono.just(ResponseEntity<Any>(record, HttpStatus.OK))
-                successMono.subscribe { log.info("Added info for user id = ${record.correlationId}") }
+                successMono.subscribe {
+                    logger.infoM("Added info for user id = ${record.correlationId}")
+                }
                 return successMono
             }
         }
         val errorMono =
             Mono.just(ResponseEntity<Any>(INVALID_PARAMETERS, HttpStatus.BAD_REQUEST))
-        errorMono.subscribe { log.info(INVALID_PARAMETERS) }
+        errorMono.subscribe {
+            logger.infoM(INVALID_PARAMETERS)
+        }
         return errorMono
     }
 

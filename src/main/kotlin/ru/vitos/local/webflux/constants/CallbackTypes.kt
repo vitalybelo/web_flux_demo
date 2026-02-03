@@ -7,6 +7,6 @@ enum class CallbackTypes(
 ) {
 
     USER_INFO("Информация пользователя"),
-    OTHER_INFO("Информация придумать")
+    DEVICE_INFO("Информация устройства (смартфон)")
 
 }

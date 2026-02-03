@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-import ru.vitos.local.webflux.constants.ObjectCompanion.Companion.log
+import ru.vitos.local.webflux.logging.Log
 import ru.vitos.local.webflux.model.CustomerInfo
 import java.lang.System.currentTimeMillis
 import javax.management.timer.Timer
@@ -19,12 +19,15 @@ import javax.management.timer.Timer
 @Service
 class CustomerService(
 
-    @Value("\${callback.total.timeout:60}") private val callbackTimeout: Long,
+    @param:Value("\${callback.total.timeout.seconds:60}")
+    private val callbackTimeout: Long,
+
     private val callbackDataService: CallbackDataService
 ) {
 
     private val delayTimeout = callbackTimeout * Timer.ONE_SECOND
 
+    companion object: Log()
 
     /**
      * Метод возвращает информацию о пользователе, которую он получает из callback запроса.
@@ -40,7 +43,8 @@ class CustomerService(
         val beginTimeoutMillis = currentTimeMillis()
         // здесь мы как-бы отправили запрос в коробку для получения callback и получили id
         val correlationId = userId
-        log.info("Starting getCustomerInfo for $userId :: with timeout $delayTimeout")
+
+        logger.infoM("Starting getCustomerInfo for $userId :: with timeout $delayTimeout")
         // начинаем ждать callback
         do {
             userInfo = callbackDataService.getUserInfoCallback(correlationId)
@@ -51,7 +55,9 @@ class CustomerService(
                 // поймали тайм-аут - отваливаемся
                 val timeoutMono =
                     Mono.just(ResponseEntity<Any>("Timeout", HttpStatus.REQUEST_TIMEOUT))
-                timeoutMono.subscribe { log.info("Timeout happen of callback correlationId = $correlationId") }
+                timeoutMono.subscribe {
+                    logger.infoM("Timeout happen of callback correlationId = $correlationId")
+                }
                 return timeoutMono
             }
             delay(1000)
@@ -60,7 +66,9 @@ class CustomerService(
 
         val successMono =
             Mono.just(ResponseEntity<Any>(userInfo, HttpStatus.OK))
-        successMono.subscribe { log.info("Success of callback waiting for $userId") }
+        successMono.subscribe {
+            logger.infoM("Success of callback waiting for user id = $userId")
+        }
         return successMono
     }
 
