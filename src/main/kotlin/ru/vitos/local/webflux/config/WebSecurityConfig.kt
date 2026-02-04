@@ -29,7 +29,7 @@ class WebSecurityConfig {
                 ).permitAll()
             }
             .oauth2ResourceServer { oauth2 ->
-                oauth2.jwt { } // Включает стандартную валидацию JWT !!! САМОЕ ВАЖНОЕ ДЛЯ KEYCLOAK !!!
+                oauth2.jwt { } // Включает стандартную валидацию JWT
             }
 
         return http.build()

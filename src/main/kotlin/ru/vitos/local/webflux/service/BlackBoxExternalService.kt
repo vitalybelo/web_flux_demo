@@ -1,12 +1,14 @@
 package ru.vitos.local.webflux.service
 
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withTimeout
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import reactor.core.scheduler.Schedulers
+import ru.vitos.local.webflux.entity.CallbackTable
 import ru.vitos.local.webflux.logging.Log
 import java.lang.System.currentTimeMillis
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import javax.management.timer.Timer
 
@@ -14,17 +16,17 @@ import javax.management.timer.Timer
 @Service
 class BlackBoxExternalService(
 
-    @param:Value("\${callback.total.timeout.seconds:30}")
+    @param:Value($$"${callback.total.timeout.seconds:30}")
     private val callbackTimeout: Long,
 
-    @param:Value("\${callback.memory.delay.seconds:2}")
-    private val memoryDelay: Long,
+    @param:Value($$"${callback.memory.delay.millis:300}")
+    private val awaitingDelay: Long,
 
     private val reactiveCallbackStore: ReactiveCallbackStore
 ) {
 
     companion object: Log()
-
+    private val timeoutInSeconds = callbackTimeout * Timer.ONE_SECOND
 
     /**
      * Мы приходим в этот метод для того, чтобы отправить запрос в сервис "коробка", получить
@@ -34,54 +36,44 @@ class BlackBoxExternalService(
      * @param userId идентификатор пользователя для запроса USER_INFO
      * @return результат или падает
      */
-    fun fetchUserInfoData(userId: String, callback: (Result<Any>) -> Unit) {
+    suspend fun fetchUserInfoData(userId: String): CallbackTable? {
 
-        logger.infoM("Start fetching user info data for :: $userId")
+        logger.infoM("Start fetching user info callback data for :: $userId")
+        val correlationId = requestUserInfoFromBlackBox(userId)
 
-        val executor = Executors.newSingleThreadScheduledExecutor()
-        val correlationId = requestUserInfoData(userId)
+        return try {
+            // withTimeout автоматически выбросит TimeoutCancellationException, если время выйдет
+            withTimeout(timeoutInSeconds) {
+                // бесконечный цикл, пока не получим данные или не сработает "тайм-аут"
+                val startCheck = currentTimeMillis()
+                while (coroutineContext.isActive) {
 
-        // здесь мы начинаем ждать callback
-        val begin = currentTimeMillis()
-        val timeout = currentTimeMillis().plus(callbackTimeout * Timer.ONE_SECOND)
-        executor.scheduleAtFixedRate({
-            try {
-                // проверяем не наступил ли "тайм-аут"
-                if (timeout < currentTimeMillis()) {
-                    // поймали тайм-аут - отваливаемся
-                    executor.shutdown()
-                    reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
-                    logger.debugM("Timeout was happen for correlationId = $correlationId >> $callbackTimeout seconds")
-                    callback(Result.failure(TimeoutException()))
-                }
-
-                // проверяем поступление callback и если поступил - читаем его
-                reactiveCallbackStore.get(correlationId).publishOn(Schedulers.boundedElastic()).map { isReceived ->
-
-                    if (isReceived) {
-                        val monoRecord = reactiveCallbackStore.selectCallbackData(correlationId)
-                        monoRecord.subscribe()
-                        monoRecord.publishOn(Schedulers.boundedElastic()).map { data ->
-                            if (data != null) {
-                                executor.shutdown()
-                                logger.infoM("Callback received for user info data :: $userId")
-                                reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
-                                callback(Result.success(data))
-                            }
-                        }.subscribe()
+                    reactiveCallbackStore.selectCallbackData(correlationId)?.let { record ->
+                        logger.debugM("Callback received for userId = $userId :: record = $record")
+                        return@withTimeout record
                     }
-                }.subscribe()
+                    if (logger.isDebugEnabled) {
+                        val seconds = (currentTimeMillis() - startCheck).toFloat() / 1000
+                        logger.debugM("Awaiting callback for correlationId = $correlationId :: $seconds seconds")
+                    }
+                    // ждем перед следующей проверкой
+                    delay(awaitingDelay)
+                }
+                return@withTimeout null // сюда никогда не попадем, но обмануть компилятор придется
+            }
 
-            } catch (e: Exception) {
-                executor.shutdown()
-                reactiveCallbackStore.removeAwaiting(correlationId).subscribe()
-                callback(Result.failure(e))
-            }
-            if (logger.isDebugEnabled) {
-                val spendTime =  (currentTimeMillis() - begin) / Timer.ONE_SECOND
-                logger.debugM("Awaiting scheduler for correlationId = $correlationId is running $spendTime sec")
-            }
-        }, 0L, memoryDelay, TimeUnit.SECONDS)
+        } catch (ex: TimeoutCancellationException) {
+            // Преобразуем системное исключение корутин в понятное бизнес-исключение
+            logger.errorM("Timeout for correlationId = $correlationId :: message = $ex.message, cause = ${ex.cause}")
+            throw TimeoutException("Timeout fetching data for user $userId")
+
+        } catch (ex: Exception) {
+            logger.errorM("Error while fetching user info", ex)
+            throw ex
+
+        } finally {
+            reactiveCallbackStore.removeAwaiting(correlationId)
+        }
     }
 
 
@@ -91,16 +83,17 @@ class BlackBoxExternalService(
      * @param userId идентификатор пользователя для запроса USER_INFO
      * @return идентификатор запроса, полученный от сервиса "коробка"
      */
-    fun requestUserInfoData(userId: String): String {
+    suspend fun requestUserInfoFromBlackBox(userId: String): String {
 
+        logger.infoM("Requesting correlation id for userId= $userId from Black Box")
         // здесь мы как будто отправляем запрос в сервис "коробка" и как бы получаем идентификатор запроса
-        // для упрощения - мы присвоим значение user_id идентификаторы обратного запроса, по которому далее
-        // будет искать callback от сервиса "коробка" для USER_INFO
+        // для упрощения - мы присвоим значение user_id идентификатору обратного запроса, по которому далее
+        // будем искать callback от сервиса "коробка" для USER_INFO
         val correlationId = userId
-        logger.infoM("Received BlackBox correlation id = $correlationId for awaiting callback")
+        logger.infoM("Received Black Box correlation id = $correlationId for awaiting callback")
 
         // сохраняем correlationId для ожидания обратного вызова от коробки
-        reactiveCallbackStore.addAwaiting(correlationId).subscribe()
+        reactiveCallbackStore.addAwaiting(correlationId)
         return correlationId
     }
 

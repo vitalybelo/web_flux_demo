@@ -1,14 +1,12 @@
 package ru.vitos.local.webflux.controller
 
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Mono
-import ru.vitos.local.webflux.constants.Constants.Companion.INVALID_PARAMETERS
 import ru.vitos.local.webflux.logging.Log
+import ru.vitos.local.webflux.model.CustomerInfo
 import ru.vitos.local.webflux.service.CustomerService
 
 @RestController
@@ -27,21 +25,16 @@ class CustomerRestController(
      * @param userId идентификатор пользователя
      * @return информацию о пользователе CustomerInfo
      */
-    @RequestMapping(value = ["/{user_id}"], method = [RequestMethod.GET] )
+    @GetMapping(value = ["/{user_id}"])
     suspend fun getCustomerInfo(
 
-        @PathVariable("user_id", required = true) userId: String?
-    ): Mono<ResponseEntity<Any>> {
+        @PathVariable("user_id", required = true) userId: String
+    ): ResponseEntity<CustomerInfo> {
 
-        userId?.let { userId ->
-            return customerService.getCustomerInfo(userId)
+        if (userId.isNotEmpty()) {
+            return customerService.awaitingCustomerInfo(userId)
         }
-        val errorMono =
-            Mono.just(ResponseEntity<Any>(INVALID_PARAMETERS, HttpStatus.BAD_REQUEST))
-
-        errorMono.subscribe { logger.infoM(INVALID_PARAMETERS) }
-        return errorMono
+        logger.errorM("Parameter user_id is missing = \"$userId\"")
+        return ResponseEntity.badRequest().build()
     }
-
-
 }

@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Mono
 import ru.vitos.local.webflux.constants.Constants.Companion.INVALID_PARAMETERS
+import ru.vitos.local.webflux.entity.CallbackTable
 import ru.vitos.local.webflux.logging.Log
 import ru.vitos.local.webflux.model.CustomerInfo
 import ru.vitos.local.webflux.service.CallbackDataService
@@ -30,27 +30,20 @@ class CallbackRestController(
      */
     @PostMapping("/callback")
     suspend fun callbackUserInfo(
+        @RequestBody(required = true) userInfo: CustomerInfo
 
-        @RequestBody(required = false) userInfo: CustomerInfo?
-    ): Mono<ResponseEntity<Any>> {
+    ): ResponseEntity<CallbackTable> {
 
-        userInfo?.userId?.let { userId ->
+        userInfo.userId?.let { userId ->
+
             callbackDataService.addUserInfoCallback(userId, userInfo)?.let { record ->
 
-                val successMono=
-                    Mono.just(ResponseEntity<Any>(record, HttpStatus.OK))
-                successMono.subscribe {
-                    logger.infoM("Added info for user id = ${record.correlationId}")
-                }
-                return successMono
+                logger.infoM("Added info for user id = ${record.correlationId}")
+                return ResponseEntity(record, HttpStatus.OK)
             }
         }
-        val errorMono =
-            Mono.just(ResponseEntity<Any>(INVALID_PARAMETERS, HttpStatus.BAD_REQUEST))
-        errorMono.subscribe {
-            logger.infoM(INVALID_PARAMETERS)
-        }
-        return errorMono
+        logger.errorM("Corrupted user info data accepted = $userInfo")
+        return ResponseEntity.badRequest().build()
     }
 
 

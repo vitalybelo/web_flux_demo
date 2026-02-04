@@ -1,14 +1,14 @@
 package ru.vitos.local.webflux.service
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withTimeoutOrNull
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 import ru.vitos.local.webflux.logging.Log
 import ru.vitos.local.webflux.model.CustomerInfo
-import java.lang.System.currentTimeMillis
 import javax.management.timer.Timer
 
 
@@ -19,13 +19,14 @@ import javax.management.timer.Timer
 @Service
 class CustomerService(
 
-    @param:Value("\${callback.total.timeout.seconds:60}")
+    @param:Value($$"${callback.total.timeout.seconds:60}")
     private val callbackTimeout: Long,
 
     private val callbackDataService: CallbackDataService
 ) {
 
-    private val delayTimeout = callbackTimeout * Timer.ONE_SECOND
+    private val delayMillis: Long = 300L
+    private val delayTimeout: Long = callbackTimeout * Timer.ONE_SECOND
 
     companion object: Log()
 
@@ -37,41 +38,28 @@ class CustomerService(
      * @param userId идентификатор пользователя
      * @return http ответ с информацией пользователя
      */
-    suspend fun getCustomerInfo(userId: String): Mono<ResponseEntity<Any>> {
+    suspend fun awaitingCustomerInfo(userId: String): ResponseEntity<CustomerInfo> {
 
-        var userInfo: CustomerInfo?
-        val beginTimeoutMillis = currentTimeMillis()
-        // здесь мы как-бы отправили запрос в коробку для получения callback и получили id
+        // здесь мы должны отправить запрос в коробку для получения callback и получить id ожидания
         val correlationId = userId
+        logger.infoM("Starting awaiting callback for user id = $userId :: with timeout $delayTimeout")
 
-        logger.infoM("Starting getCustomerInfo for $userId :: with timeout $delayTimeout")
-        // начинаем ждать callback
-        do {
-            userInfo = callbackDataService.getUserInfoCallback(correlationId)
-            if (userInfo != null) break
-            // пока callback не поступил, проверяем тайм-аут
-            val deadlineTimeoutMillis = currentTimeMillis() - beginTimeoutMillis
-            if  (deadlineTimeoutMillis > delayTimeout) {
-                // поймали тайм-аут - отваливаемся
-                val timeoutMono =
-                    Mono.just(ResponseEntity<Any>("Timeout", HttpStatus.REQUEST_TIMEOUT))
-                timeoutMono.subscribe {
-                    logger.infoM("Timeout happen of callback correlationId = $correlationId")
-                }
-                return timeoutMono
+        var userInfo: CustomerInfo? = null
+        withTimeoutOrNull(delayTimeout) {
+
+            while (coroutineContext.isActive) {
+                userInfo = callbackDataService.fetchUserInfoCallback(correlationId)
+                if (userInfo != null) return@withTimeoutOrNull
             }
-            delay(1000)
-
-        } while(true)
-
-        val successMono =
-            Mono.just(ResponseEntity<Any>(userInfo, HttpStatus.OK))
-        successMono.subscribe {
-            logger.infoM("Success of callback waiting for user id = $userId")
+            delay(delayMillis)
         }
-        return successMono
+
+        return if (userInfo != null) {
+            logger.infoM("Callback received successfully for correlationId = $correlationId")
+            ResponseEntity.ok(userInfo)
+        } else {
+            logger.warnM("Request timeout waiting for correlationId = $correlationId")
+            ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build()
+        }
     }
-
-
-
 }

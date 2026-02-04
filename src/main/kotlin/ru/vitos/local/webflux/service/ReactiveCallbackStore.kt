@@ -1,9 +1,12 @@
 package ru.vitos.local.webflux.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.withContext
 import org.springframework.data.domain.Sort
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.awaitFirstOrNull
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.data.r2dbc.core.insert
 import org.springframework.data.r2dbc.core.select
@@ -11,8 +14,6 @@ import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Mono
-import reactor.core.scheduler.Schedulers
 import ru.vitos.local.webflux.entity.CallbackTable
 import ru.vitos.local.webflux.logging.Log
 import java.util.concurrent.ConcurrentHashMap
@@ -33,22 +34,21 @@ class ReactiveCallbackStore(
 
     /**
      * Метод извлекает запись из таблицы полученных callback по идентификатору запроса
-     * Предполагается, что запись достоверно существует в таблице, поскольку при выполнении
-     * операции INSERT в таблицу callbacks
-     * было проверено scheduler из пост-конструктора
-     *
+     * Предполагается, что запись достоверно существует в таблице
+     * @param correlationId идентификатор обратного вызова
+     * @return запись из таблицы по correlationId или null
      */
-    fun selectCallbackData(correlationId: String): Mono<CallbackTable> {
+    suspend fun selectCallbackData(correlationId: String): CallbackTable? {
 
-        val record = r2dbcTemplate.select<CallbackTable>()
+        return r2dbcTemplate
+            .select<CallbackTable>()
             .matching(query(where("correlation_id").`is`(correlationId))
                 .sort(Sort.by(Sort.Direction.DESC,"timestamp"))
                 .limit(1))
-            .first()
-
-        return record.doOnNext { record ->
-            logger.debugM("Received callback data for correlation id = [$correlationId], record = [$record]")
-        }
+            .awaitFirstOrNull()?.let { record ->
+                logger.debugM("Received callback data for correlation id = [$correlationId], record = [$record]")
+                record
+            }
     }
 
 
@@ -56,16 +56,16 @@ class ReactiveCallbackStore(
      * Удаляет все заданные идентификатором callbacks из таблицы callback_table
      * @param correlationId идентификатор запроса
      */
-    fun deleteUserInfoCallback(correlationId: String) {
+    suspend fun deleteUserInfoCallback(correlationId: String): Long {
 
-        r2dbcTemplate
+        return r2dbcTemplate
             .delete<CallbackTable>()
             .matching(query(where("correlation_id").`is`(correlationId)))
             .all()
-            .map { count ->
+            .doOnNext { count ->
                 logger.infoM("Callback data deleted for correlation id = $correlationId, count = $count")
             }
-            .subscribe()
+            .awaitSingle()
     }
 
 
@@ -79,60 +79,65 @@ class ReactiveCallbackStore(
      * @return сущность сделанной записи в таблицу или null
      */
     suspend fun insertCallbackData(
-
         correlationId: String,
         callbackType: String,
         callbackData: Any
 
     ) : CallbackTable? {
 
-        if (callbackDataAwaitingMap.containsKey(correlationId)) {
-            val jsonString = objectMapper.writeValueAsString(callbackData)
+        if (!callbackDataAwaitingMap.containsKey(correlationId)) {
+            logger.warnM("Skipping callback insert: correlationId = $correlationId, because it not awaited")
+            return null
+        }
+        return try {
+            val jsonString = withContext(Dispatchers.Default) {
+                objectMapper.writeValueAsString(callbackData)
+            }
             val record = CallbackTable(correlationId, callbackType, jsonString)
-            try {
-                return r2dbcTemplate
-                    .insert<CallbackTable>()
-                    .using(record)
-                    .doOnSuccess { record ->
-                        logger.infoM("Successfully inserted data for correlation id = $correlationId :: $callbackType :: record = [$record]")
-                        callbackDataAwaitingMap[correlationId] = true
-                    }
-                    .doOnError { error ->
-                        logger.errorM("Failed to insert data for correlation id = $correlationId :: ${error.message}, cause: ${error.cause}")
-                    }
-                    .awaitSingle()
+            val savedRecord = r2dbcTemplate
+                .insert<CallbackTable>()
+                .using(record)
+                .awaitSingle()
 
-            } catch (ex: Exception) {
-                logger.errorM("Exception of inserting record for correlation id = $correlationId :: ${ex.message}, cause: ${ex.cause}")
-            }
+            logger.infoM("Successfully inserted data for correlation id = $correlationId :: record = [$record]")
+            callbackDataAwaitingMap[correlationId] = true
+            savedRecord
+
+        } catch (ex: Exception) {
+            logger.errorM("Failed inserting correlation id = $correlationId. message: ${ex.message}, cause: ${ex.cause}")
+            null
         }
-        return null
     }
 
 
-    fun addAwaiting(id: String): Mono<Void> {
+    suspend fun addAwaiting(id: String) {
         callbackDataAwaitingMap[id] = false
-        return Mono.empty()
     }
 
-    fun get(id: String): Mono<Boolean> {
-        return Mono.just(callbackDataAwaitingMap[id] == true)
-    }
 
-    fun removeAwaiting(id: String): Mono<Void> {
+    /**
+     * Выполняет удаление ожидаемого id из карты callbackDataAwaitingMap
+     * Затем выполняет удаление всех найденных записей в БД с переданным в метод id
+     * @param id идентификатор запроса
+     */
+    suspend fun removeAwaiting(id: String) {
 
-        if (callbackDataAwaitingMap.containsKey(id)) {
+        val removedValue = callbackDataAwaitingMap.remove(id)
+        if (removedValue != null) {
             try {
-                callbackDataAwaitingMap.remove(id)
-                Mono.fromCallable { deleteUserInfoCallback(id) }
-                    .subscribeOn(Schedulers.boundedElastic())
-                    .subscribe()
+                // Поток приостановится здесь, пока база данных не ответит.
+                val count = deleteUserInfoCallback(id)
+                logger.infoM("Removed awaiting id = $id, deleted = $count :: map_size = ${callbackDataAwaitingMap.size}")
 
-                logger.infoM("Removed awaiting id = $id :: $callbackDataAwaitingMap")
             } catch (ex: Exception) {
-                logger.errorM("Failed removing awaiting id = $id :: ${ex.message}, cause: ${ex.cause}")
+                // id из мапы мы удалили, чтобы не было утечки памяти,
+                logger.errorM(
+                    "Failed cleaning up DB for id = $id :: ${ex.message}, cause = ${ex.cause}", ex
+                )
             }
+        } else {
+            logger.debugM("Id = $id was not found in awaiting map")
         }
-        return Mono.empty()
     }
+
 }

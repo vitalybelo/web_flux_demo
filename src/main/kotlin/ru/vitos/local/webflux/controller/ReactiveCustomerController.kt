@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import ru.vitos.local.webflux.constants.Constants.Companion.INVALID_PARAMETERS
+import ru.vitos.local.webflux.logging.Log
+import ru.vitos.local.webflux.model.CustomerInfo
 import ru.vitos.local.webflux.service.ReactiveCustomerService
 
 @RestController
@@ -17,6 +18,7 @@ class ReactiveCustomerController(
     private val reactiveService: ReactiveCustomerService
 ) {
 
+    companion object: Log()
 
     /**
      * Метод возвращает информацию о пользователе по заданному идентификатору.
@@ -26,16 +28,25 @@ class ReactiveCustomerController(
      * @return информацию о пользователе CustomerInfo
      */
     @GetMapping("/{user_id}")
-    fun getUserInfo(@PathVariable("user_id") userId: String?): Mono<ResponseEntity<Any>> {
+    fun getAsyncUserInfo(
 
-        userId?.let { userId ->
-            val mono = reactiveService.fetchUserInfoReactive(userId)
-            return mono.map { data ->
-                ResponseEntity(data, HttpStatus.OK)
+        @PathVariable("user_id", required = true) userId: String
+    ): Mono<ResponseEntity<CustomerInfo>> {
+
+        return reactiveService.fetchUserInfoReactive(userId)
+            .map { data ->
+                ResponseEntity.ok(data)
             }
-        }
-        return Mono.just(ResponseEntity(INVALID_PARAMETERS, HttpStatus.BAD_REQUEST))
+            .switchIfEmpty(
+                // Явно возвращаем 404, если сервис вернул пустоту
+                Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build())
+            )
+            .onErrorResume { ex ->
+                logger.errorM(
+                    "Error fetching user info :: message = ${ex.message}, cause = ${ex.cause}",
+                    ex
+                )
+                Mono.just(ResponseEntity( HttpStatus.INTERNAL_SERVER_ERROR))
+            }
     }
-
-
 }

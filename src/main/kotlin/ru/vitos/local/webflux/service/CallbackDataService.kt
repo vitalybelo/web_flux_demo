@@ -2,6 +2,7 @@ package ru.vitos.local.webflux.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactive.awaitFirstOrNull
+import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.domain.Sort
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -38,13 +39,12 @@ class CallbackDataService(
      * @param correlationId идентификатор запроса
      * @return имя пользователя или null, если в хранилище нет записи для идентификатора
      */
-    suspend fun getUserInfoCallback(correlationId: String): CustomerInfo? {
+    suspend fun fetchUserInfoCallback(correlationId: String): CustomerInfo? {
 
-            findUserInfoCallback(correlationId)?.let { userInfo ->
-                deleteUserInfoCallback(correlationId)
-                return userInfo
-            }
-        return null
+        return findUserInfoCallback(correlationId)?.let { userInfo ->
+            deleteUserInfoCallback(correlationId)
+            userInfo
+        }
     }
 
 
@@ -56,13 +56,14 @@ class CallbackDataService(
 
         r2dbcEntityTemplate
             .delete<CallbackTable>()
-            .matching(query(where("correlation_id").`is`(correlationId)
-                .and("callback_type").`is`(CallbackTypes.USER_INFO.name)))
+            .matching(
+                query(
+                    where("correlation_id").`is`(correlationId)
+                        .and("callback_type").`is`(CallbackTypes.USER_INFO.name)))
             .all()
-            .map {
-                logger.infoM("User info successfully deleted for correlationId = $correlationId :: count = $it")
+            .awaitSingleOrNull()?.let { count ->
+                logger.infoM("User info successfully deleted for correlationId = $correlationId :: count = $count")
             }
-            .subscribe {}
     }
 
 
@@ -73,20 +74,29 @@ class CallbackDataService(
      */
     suspend fun findUserInfoCallback(correlationId: String): CustomerInfo? {
 
-        r2dbcEntityTemplate
+        val record = r2dbcEntityTemplate
             .select<CallbackTable>()
             .matching(query(where("correlation_id").`is`(correlationId)
                     .and("callback_type").`is`(CallbackTypes.USER_INFO.name))
                     .sort(Sort.by(Sort.Direction.DESC,"timestamp"))
                     .limit(1))
             .all()
-            .awaitFirstOrNull()?.let { record ->
-                objectMapper.readValue(record.callbackJson, CustomerInfo::class.java)?.let {
-                    logger.infoM("User info found for correlationId = $correlationId :: $it")
-                    return it
-                }
+            .awaitFirstOrNull() ?: return null
+            return try {
+                val userInfo =
+                    objectMapper.readValue(record.callbackJson, CustomerInfo::class.java)
+                logger.infoM("User info found for correlationId = $correlationId. UserInfo: $userInfo")
+                userInfo
+
+            } catch (ex: Exception) {
+                logger.error("""Failed to parse callback JSON 
+                    | table record = $record
+                    | message = ${ex.message}
+                    | cause = ${ex.cause}
+                    """.trimMargin()
+                )
+                null
             }
-        return null
     }
 
 
@@ -97,18 +107,30 @@ class CallbackDataService(
      * @param correlationId идентификатор запроса
      * @param userInfo информация о пользователе
      */
-    suspend fun addUserInfoCallback(correlationId: String, userInfo: CustomerInfo): CallbackTable? {
+    suspend fun addUserInfoCallback(
+        correlationId: String,
+        userInfo: CustomerInfo
 
-        val userInfoJsonString = objectMapper.writeValueAsString(userInfo)
-        val record = CallbackTable(correlationId, CallbackTypes.USER_INFO.name, userInfoJsonString)
-        r2dbcEntityTemplate
-            .insert<CallbackTable>()
-            .using(record)
-            .awaitSingleOrNull()?.let { result ->
-                logger.debugM("Callback added to table :: result = $result")
-                return result
-            }
-        return null
+    ): CallbackTable? {
+
+        return try {
+            val userInfoJsonString = objectMapper.writeValueAsString(userInfo)
+            val record = CallbackTable(
+                correlationId,
+                CallbackTypes.USER_INFO.name,
+                userInfoJsonString
+            )
+            r2dbcEntityTemplate
+                .insert<CallbackTable>()
+                .using(record)
+                .awaitSingle()
+                .also { record ->
+                    logger.debugM("Callback added to table :: result = $record")
+                }
+        } catch (ex: Exception) {
+            logger.errorM("Failed to add user info to table :: message = ${ex.message}, cause = ${ex.cause}")
+            null
+        }
     }
 
 }

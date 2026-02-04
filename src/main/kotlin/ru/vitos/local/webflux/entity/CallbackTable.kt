@@ -6,8 +6,6 @@ import org.springframework.data.relational.core.mapping.Table
 import java.lang.System.currentTimeMillis
 import java.util.UUID
 
-
-@Suppress("unused")
 @Table(name = "callback_table", schema = "public")
 data class CallbackTable(
 
@@ -28,13 +26,6 @@ data class CallbackTable(
     val timestamp: Long? = null
 
 ) {
-    constructor() :
-            this(
-                UUID.randomUUID(),
-                "",
-                "",
-                "",
-                currentTimeMillis())
 
     constructor(id: String,
                 type: String,

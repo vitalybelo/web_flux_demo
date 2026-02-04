@@ -19,8 +19,8 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(TimeoutException::class)
     @ResponseStatus(HttpStatus.REQUEST_TIMEOUT)
-    fun handleTimeoutException() {
-        logger.errorM("Timeout occurred while getting delayed response")
+    fun handleTimeoutException(message: String) {
+        logger.errorM(message)
     }
 
 }
