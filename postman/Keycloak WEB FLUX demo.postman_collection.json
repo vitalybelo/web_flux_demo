@@ -1,282 +1,282 @@
 {
-	"info": {
-		"_postman_id": "c622ac1b-7e2b-44af-96d7-f72d780ed829",
-		"name": "Keycloak WEB FLUX demo",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "25432314"
-	},
-	"item": [
-		{
-			"name": "BLOCKING",
-			"item": [
-				{
-					"name": "GET customer info",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "urlencoded",
-							"urlencoded": []
-						},
-						"url": {
-							"raw": "http://localhost:8080/webflux/customer/7bdd9088-29b2-4fa8-9c3d-bf539ecb825a",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"webflux",
-								"customer",
-								"7bdd9088-29b2-4fa8-9c3d-bf539ecb825a"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "POST customer callback",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"user_id\": \"7bdd9088-29b2-4fa8-9c3d-bf539ecb825a\",\r\n    \"user_name\": \"ivanoff\",\r\n    \"first_name\": \"Семен\",\r\n    \"family_name\": \"Горбунков\",\r\n    \"middle_name\": \"Семенович\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:8080/webflux/customer/callback",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"webflux",
-								"customer",
-								"callback"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "NON_BLOCKING",
-			"item": [
-				{
-					"name": "GET Reactive user info 1",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "urlencoded",
-							"urlencoded": []
-						},
-						"url": {
-							"raw": "http://localhost:8080/webflux/mono/customer/07dd7726-5d6c-4409-857e-1c707439d468",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"webflux",
-								"mono",
-								"customer",
-								"07dd7726-5d6c-4409-857e-1c707439d468"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "GET Reactive user info 2",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "urlencoded",
-							"urlencoded": []
-						},
-						"url": {
-							"raw": "http://localhost:8080/webflux/mono/customer/2f3a558e-d922-40ee-b8d6-f599436511b5",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"webflux",
-								"mono",
-								"customer",
-								"2f3a558e-d922-40ee-b8d6-f599436511b5"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "GET Reactive user info 3",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "urlencoded",
-							"urlencoded": []
-						},
-						"url": {
-							"raw": "http://localhost:8080/webflux/mono/customer/e9ab617e-aa4d-4206-8877-3615a8420d33",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"webflux",
-								"mono",
-								"customer",
-								"e9ab617e-aa4d-4206-8877-3615a8420d33"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "POST Reactive user callback 1",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"user_id\": \"07dd7726-5d6c-4409-857e-1c707439d468\",\r\n    \"user_name\": \"callback1\",\r\n    \"first_name\": \"Семен1\",\r\n    \"family_name\": \"Горбунков1\",\r\n    \"middle_name\": \"Семенович1\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:8080/webflux/mono/customer/callback",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"webflux",
-								"mono",
-								"customer",
-								"callback"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "POST Reactive user callback 2",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"user_id\": \"2f3a558e-d922-40ee-b8d6-f599436511b5\",\r\n    \"user_name\": \"callback2\",\r\n    \"first_name\": \"Семен2\",\r\n    \"family_name\": \"Горбунков2\",\r\n    \"middle_name\": \"Семенович2\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:8080/webflux/mono/customer/callback",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"webflux",
-								"mono",
-								"customer",
-								"callback"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "POST Reactive user callback 3",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"user_id\": \"e9ab617e-aa4d-4206-8877-3615a8420d33\",\r\n    \"user_name\": \"callback3\",\r\n    \"first_name\": \"Семен3\",\r\n    \"family_name\": \"Горбунков3\",\r\n    \"middle_name\": \"Семенович3\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:8080/webflux/mono/customer/callback",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"webflux",
-								"mono",
-								"customer",
-								"callback"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		}
-	]
+  "info": {
+    "_postman_id": "c622ac1b-7e2b-44af-96d7-f72d780ed829",
+    "name": "Keycloak WEB FLUX demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "25432314"
+  },
+  "item": [
+    {
+      "name": "BLOCKING",
+      "item": [
+        {
+          "name": "GET customer info",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/customer/7bdd9088-29b2-4fa8-9c3d-bf539ecb825a",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "customer",
+                "7bdd9088-29b2-4fa8-9c3d-bf539ecb825a"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST customer callback",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\": \"7bdd9088-29b2-4fa8-9c3d-bf539ecb825a\",\r\n    \"user_name\": \"ivanoff\",\r\n    \"first_name\": \"Семен\",\r\n    \"family_name\": \"Горбунков\",\r\n    \"middle_name\": \"Семенович\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/customer/callback",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "customer",
+                "callback"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "NON_BLOCKING",
+      "item": [
+        {
+          "name": "GET Reactive user info 1",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/mono/customer/07dd7726-5d6c-4409-857e-1c707439d468",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "mono",
+                "customer",
+                "07dd7726-5d6c-4409-857e-1c707439d468"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Reactive user info 2",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/mono/customer/2f3a558e-d922-40ee-b8d6-f599436511b5",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "mono",
+                "customer",
+                "2f3a558e-d922-40ee-b8d6-f599436511b5"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Reactive user info 3",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/mono/customer/e9ab617e-aa4d-4206-8877-3615a8420d33",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "mono",
+                "customer",
+                "e9ab617e-aa4d-4206-8877-3615a8420d33"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Reactive user callback 1",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\": \"07dd7726-5d6c-4409-857e-1c707439d468\",\r\n    \"user_name\": \"callback1\",\r\n    \"first_name\": \"Семен1\",\r\n    \"family_name\": \"Горбунков1\",\r\n    \"middle_name\": \"Семенович1\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/mono/customer/callback",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "mono",
+                "customer",
+                "callback"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Reactive user callback 2",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\": \"2f3a558e-d922-40ee-b8d6-f599436511b5\",\r\n    \"user_name\": \"callback2\",\r\n    \"first_name\": \"Семен2\",\r\n    \"family_name\": \"Горбунков2\",\r\n    \"middle_name\": \"Семенович2\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/mono/customer/callback",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "mono",
+                "customer",
+                "callback"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Reactive user callback 3",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\": \"e9ab617e-aa4d-4206-8877-3615a8420d33\",\r\n    \"user_name\": \"callback3\",\r\n    \"first_name\": \"Семен3\",\r\n    \"family_name\": \"Горбунков3\",\r\n    \"middle_name\": \"Семенович3\",\r\n    \"email\": \"semen@mail.com\",\r\n    \"phone\": \"+7 900 800-1122\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/mono/customer/callback",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "mono",
+                "customer",
+                "callback"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
 }

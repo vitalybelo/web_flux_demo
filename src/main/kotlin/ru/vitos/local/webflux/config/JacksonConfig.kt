@@ -6,14 +6,16 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 
+/**
+ * jacksonObjectMapper() — готовое расширение из jackson-module-kotlin, которое уже включает в себя KotlinModule
+ * Vitalii Belotserkovskii (c), 05.02.2026
+ */
 @Configuration
-open class JacksonConfig {
+class JacksonConfig {
 
     @Bean(name = ["objectMapper", "jacksonObjectMapper"])
     @Primary
-    open fun objectMapper(): ObjectMapper {
-        // jacksonObjectMapper() — это готовое расширение из jackson-module-kotlin,
-        // которое уже включает в себя KotlinModule
+    fun objectMapper(): ObjectMapper {
         return jacksonObjectMapper()
     }
 }

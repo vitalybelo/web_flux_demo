@@ -1,26 +1,88 @@
 package ru.vitos.local.webflux.controller
 
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.security.core.Authentication
+import org.springframework.security.web.server.WebFilterExchange
+import org.springframework.stereotype.Controller
+import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ServerWebExchange
+import org.springframework.web.server.WebFilterChain
+import ru.vitos.local.webflux.config.KeycloakLogoutHandler
 import reactor.core.publisher.Mono
+import ru.vitos.local.webflux.authorization.AccessTokenService
+import ru.vitos.local.webflux.logging.Log
+import java.net.URI
 
-@RestController
-@RequestMapping("/index")
-class MainPageController {
+@Controller
+class MainPageController(
 
-    @GetMapping("", produces = [MediaType.TEXT_HTML_VALUE])
-    fun index(): Mono<String> {
-        return Mono.just("""
-            <html>
-                <body>
-                    <div style="text-align: center; margin-top: 50px;">
-                        <h1>Hello, World!</h1>
-                        <p>WebFlux is working via Netty</p>
-                    </div>
-                </body>
-            </html>
-        """.trimIndent())
+    private val keycloakLogoutHandler: KeycloakLogoutHandler,
+    private val accessTokenService: AccessTokenService
+) {
+
+
+    companion object: Log() {
+        const val NO_DETECTED = "No detected"
+    }
+
+    @GetMapping("/index", produces = [MediaType.TEXT_HTML_VALUE])
+    fun index(
+
+        authentication: Authentication,
+        model: Model
+    ): String {
+
+        logger.info(">>>>> Phone = ${accessTokenService.getClaims()["phone"]}")
+        logger.info(">>>>> Position = ${accessTokenService.getClaims()["position"]}")
+
+        val accessToken = accessTokenService.assign(authentication)
+        val clientRoles = accessTokenService.streamClientRoles()
+        val realmRoles = accessTokenService.streamRealmRoles()
+
+        model.addAttribute("username", accessToken?.login ?: NO_DETECTED)
+        model.addAttribute("first_name", accessToken?.firstName ?: NO_DETECTED)
+        model.addAttribute("last_name", accessToken?.familyName ?: NO_DETECTED)
+        model.addAttribute("phone", accessToken?.phone ?: NO_DETECTED)
+        model.addAttribute("position", accessToken?.position ?: NO_DETECTED)
+        model.addAttribute("department", accessToken?.department ?: NO_DETECTED)
+        model.addAttribute("abscust_id", accessToken?.abscustId ?: NO_DETECTED)
+        model.addAttribute("enter_time", accessToken?.enterTime ?: NO_DETECTED)
+        model.addAttribute("method_2FA", accessToken?.required2FA ?: NO_DETECTED)
+        model.addAttribute("full_name", accessToken?.fullName() ?: NO_DETECTED)
+        model.addAttribute("client_roles", clientRoles)
+        model.addAttribute("realm_roles", realmRoles)
+
+        logger.info(model.toString())
+        return "external"
+    }
+
+
+    @GetMapping("/custom-logout")
+    suspend fun logout(
+
+        exchange: ServerWebExchange,
+        authentication: Authentication?
+    ): ResponseEntity<Void> {
+
+        if (authentication != null) {
+            // Создаем WebFilterExchange вручную.
+            val emptyChain = WebFilterChain { Mono.empty() }
+            val filterExchange = WebFilterExchange(exchange, emptyChain)
+
+            // keycloakLogoutHandler и ОБЯЗАТЕЛЬНО ждем (.awaitSingleOrNull)
+            keycloakLogoutHandler.logout(filterExchange, authentication).awaitSingleOrNull()
+        }
+
+        // убиваем сессию локально и тоже ждем (.awaitSingleOrNull)
+        exchange.session.flatMap { it.invalidate() }.awaitSingleOrNull()
+
+        // Возвращаем обычный объект (без Mono обертки) - редирект на стартовую страницу
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .location(URI.create("/webflux/index"))
+            .build()
     }
 }
