@@ -11,7 +11,7 @@ import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilterChain
-import ru.vitos.local.webflux.config.KeycloakLogoutHandler
+import ru.vitos.local.webflux.config.filters.KeycloakLogoutHandler
 import reactor.core.publisher.Mono
 import ru.vitos.local.webflux.authorization.AccessTokenService
 import ru.vitos.local.webflux.logging.Log
@@ -30,14 +30,18 @@ class MainPageController(
     }
 
     @GetMapping("/index", produces = [MediaType.TEXT_HTML_VALUE])
-    fun index(
-
+    suspend fun index(
         authentication: Authentication,
         model: Model
     ): String {
 
-        logger.info(">>>>> Phone = ${accessTokenService.getClaims()["phone"]}")
-        logger.info(">>>>> Position = ${accessTokenService.getClaims()["position"]}")
+        val claims = accessTokenService.getClaims()
+        val phone = accessTokenService.getClaims()["phone"] as String
+        val position = accessTokenService.getClaims()["position"] as String
+
+        logger.infoM("Phone = $phone")
+        logger.infoM("Position = $position")
+        logger.infoM("claims = $claims")
 
         val accessToken = accessTokenService.assign(authentication)
         val clientRoles = accessTokenService.streamClientRoles()

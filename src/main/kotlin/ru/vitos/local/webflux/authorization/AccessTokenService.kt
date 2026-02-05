@@ -2,13 +2,13 @@ package ru.vitos.local.webflux.authorization
 
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.security.core.Authentication
-import org.springframework.security.core.context.SecurityContext
-import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Mono
 import ru.vitos.local.webflux.logging.Log
 import java.util.*
 
@@ -36,23 +36,22 @@ class AccessTokenService(
      * Проверяет доступность класса аутентификации spring security для чтения данных пользователя из токена доступа
      * @return true если security context доступен
      */
-    private fun isSpringContext() =
-        Optional
-            .ofNullable(SecurityContextHolder.getContext())
-            .map { obj: SecurityContext -> obj.authentication }.isPresent
+    private fun isSpringContext(): Mono<Boolean> {
+        return ReactiveSecurityContextHolder.getContext()
+            .map { context -> context.authentication != null }
+            .defaultIfEmpty(false)
+    }
 
 
     /**
      * Читает из контекста безопасности spring security класс аутентификации пользователя, если он там есть
      * @return инициализированный data класс AccessToken или null
      */
-    fun assign(): AccessToken? {
-
-        if (isSpringContext()) {
-            val authentication = SecurityContextHolder.getContext().authentication ?: return null
-             return assign(authentication)
-        }
-        return null
+    suspend fun assign(): AccessToken? {
+        return ReactiveSecurityContextHolder.getContext()
+            .mapNotNull { context -> context.authentication }
+            .mapNotNull { authentication -> assign(authentication) }
+            .awaitSingleOrNull()
     }
 
 
@@ -84,27 +83,7 @@ class AccessTokenService(
 
 
     /**
-     * Метод извлекает принципал из контекста безопасности spring security. В зависимости от источника
-     * запроса и типа токена (JWT или JSESSIONID) извлекается карта с утверждениями токена
-     *
-     * @return карта с утверждениями токена или пустая
-    */
-    fun getClaims(): Map<String, Any> {
-        SecurityContextHolder.getContext()?.authentication?.principal?.let { principal ->
-            if (principal is DefaultOidcUser) {
-                return principal.claims
-            }
-            if (principal is Jwt) {
-                return principal.claims
-            }
-        }
-        return emptyMap()
-    }
-
-
-    /**
      * Извлекает из заголовка http запроса токен доступа, и инициализирует с помощью него класс AccessToken
-     *
      * @param headers - карта заголовков http запроса
      * @return инициализированный data класс AccessToken или null
      */
@@ -114,6 +93,28 @@ class AccessTokenService(
             return parseAccessToken(it)
         }
         return null
+    }
+
+
+    /**
+     * Метод извлекает принципал из контекста безопасности spring security. В зависимости от источника
+     * запроса и типа токена (JWT или JSESSIONID) извлекается карта с утверждениями токена
+     * @return карта с утверждениями токена или пустая
+    */
+    suspend fun getClaims(): Map<String, Any> {
+
+        val principal = ReactiveSecurityContextHolder.getContext()
+            .mapNotNull { context -> context.authentication }
+            .mapNotNull { authentication -> authentication.principal }
+            .awaitSingleOrNull()
+
+            if (principal is DefaultOidcUser) {
+                return principal.claims
+            }
+            if (principal is Jwt) {
+                return principal.claims
+            }
+        return emptyMap()
     }
 
 
@@ -154,10 +155,11 @@ class AccessTokenService(
                 val payload = String(decoder.decode(chunks[1]))
                 try {
                     objectMapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-                    accessToken = objectMapper.readValue(payload)
+                    accessToken = objectMapper.readValue(payload, AccessToken::class.java)
+                    accessToken?.tokenValue = tokenString
 
-                } catch (e: Exception) {
-                    logger.info(">>> Ошибка парсинга токена доступа: {}", e.message)
+                } catch (ex: Exception) {
+                    logger.errorM("Ошибка парсинга токена доступа :: message = ${ex.message}, cause = ${ex.cause}")
                 }
             }
         }
@@ -168,26 +170,15 @@ class AccessTokenService(
     /**
      * @return извлекает и возвращает из карты ролей области все значения
      */
-    fun streamRealmRoles(): List<String> {
-        try {
-            return (accessToken ?: assign())?.realmRolesMap?.values?.flatten() ?: emptyList()
-        } catch (ex: Exception) {
-            logger.error("Crashed in streamRealmRoles() ${ex.message}", ex)
-        }
-        return emptyList()
+    suspend fun streamRealmRoles(): List<String> {
+        return assign()?.realmRolesMap?.values?.flatten() ?: emptyList()
     }
-
 
     /**
      * @return извлекает и возвращает из карты ролей сервисов все значения
      */
-    fun streamClientRoles(): List<String> {
-        try {
-            return (accessToken ?: assign())?.clientRolesMap?.values?.flatMap { it.values.flatten() } ?: emptyList()
-        } catch (ex: Exception) {
-            logger.error("Crashed in streamClientRoles() ${ex.message}", ex)
-        }
-        return emptyList()
+    suspend fun streamClientRoles(): List<String> {
+        return assign()?.clientRolesMap?.values?.flatMap { it.values.flatten() } ?: emptyList()
     }
 
 }

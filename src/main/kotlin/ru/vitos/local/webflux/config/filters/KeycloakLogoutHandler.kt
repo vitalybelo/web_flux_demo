@@ -1,4 +1,4 @@
-package ru.vitos.local.webflux.config
+package ru.vitos.local.webflux.config.filters
 
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.core.oidc.user.OidcUser
@@ -10,9 +10,9 @@ import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
 import ru.vitos.local.webflux.logging.Log
 
-
 @Component
 class KeycloakLogoutHandler(
+
     private val webClient: WebClient
 ): ServerLogoutHandler {
 

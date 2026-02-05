@@ -48,6 +48,8 @@ data class AccessToken(
     @JsonProperty("email_verified") var emailVerified: Boolean = false,
     @JsonProperty("group_attribute") var groupAttribute: List<String>? = null,
 
+    var tokenValue: String? = null
+
     ) {
 
     /**
