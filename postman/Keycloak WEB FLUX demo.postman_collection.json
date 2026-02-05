@@ -277,6 +277,125 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "PRIVATE",
+      "item": [
+        {
+          "name": "GET Token Info private",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "oauth2",
+              "oauth2": [
+                {
+                  "key": "clientSecret",
+                  "value": "WbP46pdXfGG1Gmpw5sS859vL5NgLN2t4",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "alex",
+                  "type": "string"
+                },
+                {
+                  "key": "username",
+                  "value": "alex",
+                  "type": "string"
+                },
+                {
+                  "key": "clientId",
+                  "value": "login-web",
+                  "type": "string"
+                },
+                {
+                  "key": "accessTokenUrl",
+                  "value": "http://localhost:8443/realms/SpringBootKeycloak/protocol/openid-connect/token",
+                  "type": "string"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password_credentials",
+                  "type": "string"
+                },
+                {
+                  "key": "client_authentication",
+                  "value": "header",
+                  "type": "string"
+                },
+                {
+                  "key": "scope",
+                  "value": "",
+                  "type": "string"
+                },
+                {
+                  "key": "addTokenTo",
+                  "value": "header",
+                  "type": "string"
+                },
+                {
+                  "key": "tokenName",
+                  "value": "keycloak bearer token",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/private/token-info",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "private",
+                "token-info"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Token Info admin",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "http://localhost:8080/webflux/admin/token-info",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "webflux",
+                "admin",
+                "token-info"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

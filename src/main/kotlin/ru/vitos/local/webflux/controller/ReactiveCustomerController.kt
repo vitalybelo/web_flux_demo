@@ -33,12 +33,12 @@ class ReactiveCustomerController(
         @PathVariable("user_id", required = true) userId: String
     ): Mono<ResponseEntity<CustomerInfo>> {
 
-        return reactiveService.fetchUserInfoReactive(userId)
+        return reactiveService
+            .fetchUserInfoReactive(userId)
             .map { data ->
                 ResponseEntity.ok(data)
             }
             .switchIfEmpty(
-                // Явно возвращаем 404, если сервис вернул пустоту
                 Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build())
             )
             .onErrorResume { ex ->
