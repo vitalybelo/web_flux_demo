@@ -34,7 +34,7 @@ data class AccessToken(
     @JsonProperty("middle_name") var middleName: String? = null,
     @JsonProperty("family_name") var familyName: String? = null,
     @JsonProperty("name") var displayName: String? = null,
-    @JsonProperty("preferred_username") var login: String? = null,
+    @JsonProperty("preferred_username") var username: String? = null,
 
     @JsonProperty("email") var email: String? = null,
     @JsonProperty("phone") var phone: String? = null,
@@ -58,7 +58,7 @@ data class AccessToken(
     fun fullName(): String {
 
         val space = " "
-        val fio = StringBuilder().append(firstName ?: login ?: "Anonymous")
+        val fio = StringBuilder().append(firstName ?: username ?: "Anonymous")
 
         if (!middleName.isNullOrBlank()) fio.append(space).append(middleName)
         if (!familyName.isNullOrBlank()) fio.append(space).append(familyName)

@@ -48,12 +48,12 @@ class KeycloakLogoutHandler(
         return webClient.get()
             .uri(uri)
             .retrieve()
-            .toBodilessEntity() // Нам не нужно тело ответа, только статус
+            .toBodilessEntity()
             .doOnSuccess {
                 logger.infoM("Successfully logged out from Keycloak for user: ${user.name}")
             }
             .doOnError { error ->
-                logger.errorM("Could not propagate logout to Keycloak: ${error.message}")
+                logger.errorM("Could not propagate logout to Keycloak: ${error.message}, cause: ${error.cause}")
             }
             .then()
     }

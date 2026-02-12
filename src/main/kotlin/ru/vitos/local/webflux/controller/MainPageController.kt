@@ -47,7 +47,7 @@ class MainPageController(
         val clientRoles = accessTokenService.streamClientRoles()
         val realmRoles = accessTokenService.streamRealmRoles()
 
-        model.addAttribute("username", accessToken?.login ?: NO_DETECTED)
+        model.addAttribute("username", accessToken?.username ?: NO_DETECTED)
         model.addAttribute("first_name", accessToken?.firstName ?: NO_DETECTED)
         model.addAttribute("last_name", accessToken?.familyName ?: NO_DETECTED)
         model.addAttribute("phone", accessToken?.phone ?: NO_DETECTED)

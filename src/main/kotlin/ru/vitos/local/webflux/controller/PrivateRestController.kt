@@ -5,45 +5,44 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import ru.vitos.local.webflux.authorization.AccessToken
-import ru.vitos.local.webflux.authorization.AccessTokenService
 import ru.vitos.local.webflux.logging.Log
+import ru.vitos.local.webflux.service.KeycloakAdminService
 
 
 @RestController
 @RequestMapping("/private")
 class PrivateRestController(
 
-    private val accessTokenService: AccessTokenService
+    private val keycloakAdminService: KeycloakAdminService
 ) {
 
-    companion object: Log()
+    companion object : Log()
 
     /**
      * Выполняет парсинг access токена доступа и возвращает его клиенту
      * @return статус и токен доступа
      */
     @GetMapping("/token-info")
-    suspend fun callbackUserInfo(): ResponseEntity<AccessToken> {
+    suspend fun callbackTokenInfo(): ResponseEntity<AccessToken> {
 
-        val accessToken = accessTokenService.assign()
-            ?: return ResponseEntity.notFound().build()
-
-        logger.infoM("Request access token info :: $accessToken")
-        return ResponseEntity.ok(accessToken)
-
+        return keycloakAdminService.getTokenInfo()
     }
 
+    /**
+     * Выполняет парсинг access токена доступа, делает запрос на конечную точку userInfo
+     * @return userInfo
+     */
+    @GetMapping("/user-info")
+    suspend fun callbackUserInfo(): ResponseEntity<Map<String, Any>> {
 
+        keycloakAdminService.getUserInfo()?.let { userInfoResponse ->
 
+            logger.infoM("Request user info :: ${userInfoResponse.body}")
+            return userInfoResponse
+        }
+        logger.errorM("Failed to get user info for user")
+        return ResponseEntity.internalServerError().build()
 
-
-
-
-
-
-
-
-
-
+    }
 
 }
